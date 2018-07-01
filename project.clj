@@ -15,6 +15,8 @@
                  [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.25"]
                  [kubernetes-api "0.1.0"]
+                 [com.walmartlabs/lacinia-pedestal "0.5.0"]
+                 [io.aviso/logging "0.2.0"]
                  [org.slf4j/jcl-over-slf4j "1.7.25"]
                  [com.walmartlabs/lacinia "0.21.0"]
                  [org.slf4j/log4j-over-slf4j "1.7.25"]]

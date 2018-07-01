@@ -1,25 +1,38 @@
 (ns soil.schema
-  (:require [soil.resolvers :as resolvers]))
+  (:require [soil.resolvers :as resolvers]
+            [com.walmartlabs.lacinia.util :as util]
+            [com.walmartlabs.lacinia.schema :as schema]))
 
 
-(def schema
+(def type-defs
   {:objects
-   {:Namespace
-    {:fields {:id   {:type '(non-null ID)}
-              :name {:type '(non-null String)}}}}
+   {:Service {:fields {:id        {:type '(non-null ID)}
+                       :name      {:type '(non-null String)}
+                       :shard     {:type 'String}
+                       :namespace {:type :Namespace}}}
+    :Namespace
+             {:fields {:id   {:type '(non-null ID)}
+                       :name {:type '(non-null String)}}}}
    :queries
    {:namespace
-    {:type :Namespace
-     :args {:id {:type '(non-null ID)}}}}
+    {:type    :Namespace
+     :resolve :namespace
+     :args    {:id {:type '(non-null ID)}}}}
 
 
    :mutations
-   {:createNamespace {:args {:name {:type '(non-null String)}}}
-    :deleteNamespace {:args {:id {:type '(non-null ID)}}}
-    :deploy          {:args {:name      {:type '(non-null String)}
-                             :shard     {:type '(non-null String)}
-                             :image     {:type '(non-null String)}
-                             :namespace {:type '(non-null String)}}}}})
+   {:createNamespace {:type    :Namespace
+                      :args    {:name {:type '(non-null String)}}
+                      :resolve :create-namespace}
+    :deleteNamespace {:type    :Namespace
+                      :args    {:id {:type '(non-null ID)}}
+                      :resolve :delete-namespace}
+    :deploy          {:type    :Service
+                      :args    {:name      {:type '(non-null String)}
+                                :shard     {:type '(non-null String)}
+                                :image     {:type '(non-null String)}
+                                :namespace {:type '(non-null String)}}
+                      :resolve :deploy}}})
 
 (def query-resolvers
   (into {}
@@ -28,8 +41,14 @@
 
 (def mutation-resolvers
   (into {}
-        [[:create-namespace resolvers/create-namespace
-          :delete-namespace resolvers/delete-namespace
-          :deploy resolvers/deploy]]))
+        [[:create-namespace resolvers/create-namespace]
+         [:delete-namespace resolvers/delete-namespace]
+         [:deploy resolvers/deploy]]))
 
-(def resolvers (merge query-resolvers mutation-resolvers))
+(def resolver-map (merge query-resolvers mutation-resolvers))
+
+(defn load-schema
+  []
+  (-> type-defs
+      (util/attach-resolvers resolver-map)
+      schema/compile))
