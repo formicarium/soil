@@ -3,6 +3,6 @@
             [kubernetes.api.v1 :as k8s]
             [soil.k8s :refer [ctx]]))
 
-(def list-namespaces []
+(defn list-namespaces []
   (<!! (k8s/list-namespaced-node ctx))
   )
