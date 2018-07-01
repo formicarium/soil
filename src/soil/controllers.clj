@@ -2,26 +2,29 @@
 
 
 (defn get-namespace [namespace]
-  (println "Getting namespace..."
-           {:name "Teste"}))
+  (println "Getting namespace...")
+  {:id "Teste"})
 
 (defn get-namespaces []
   (println "Getting namespaces...")
-  [{:name "Teste"}])
+  [{:id "Teste"}])
 
 
 (defn create-namespace [namespace]
   (println "Creating namespace...")
-  {:name "Created namespace"})
+  {:id   "id"
+   :name "Created namespace"})
 
 
 (defn delete-namespace [namespace]
   (println "Deleting namespace...")
-  {:name "Deleted namesapce"})
+  {:id   "id"
+   :name "Deleted namesapce"})
 
-(defn deploy [namespace service-name shard image]
+(defn deploy [namespace name shard image]
   (println "Deploying...")
-  {:namespace    {:name namespace}
-   :service-name service-name
-   :shard        shard
-   :image        image})
+  {:namespace {:id   namespace
+               :name namespace}
+   :name      name
+   :shard     shard
+   :image     image})
