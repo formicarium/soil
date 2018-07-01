@@ -1,0 +1,73 @@
+# Clojure CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-clojure/ for more details
+#
+version: 2
+jobs:
+  test:
+    docker:
+      - image: circleci/clojure:lein-2.7.1
+    working_directory: ~/repo
+
+    environment:
+      LEIN_ROOT: "true"
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "project.clj" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run: lein deps
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "project.clj" }}
+
+      # run tests!
+      - run: lein test
+  build-artifact:
+    docker:
+      - image: circleci/clojure:lein-2.7.1
+    working_directory: ~/repo
+
+    environment:
+      LEIN_ROOT: "true"
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+    steps:
+      - checkout
+      - run: lein uberjar
+      - store_artifacts:
+          path: ~/repo/target/soil-0.0.1-SNAPSHOT-standalone.jar
+          destination: jars/soil.jar
+  build-docker:
+    machine: true
+    steps:
+      - run: docker build -t formicarium/soil:$VERSION .
+  publish-image:
+    machine: true
+    steps:
+      - run: docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
+      - run: docker push formicarium/soil:$VERSION
+workflows:
+  version: 2
+  soil_workflow:
+    jobs:
+      - test
+      - build-artifact:
+          requires:
+            - test
+      - build-docker:
+          requires:
+            - build-artifact
+      - publish-image:
+          requires:
+            - build-docker
