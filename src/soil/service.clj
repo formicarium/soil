@@ -2,48 +2,76 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [ring.util.response :as ring-resp]))
+            [ring.util.response :as ring-resp]
+            [io.pedestal.interceptor :as int]
+            [cheshire.core :as cheshire]
+            [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
+            [soil.controllers.environments :as c-env]
+            [io.pedestal.interceptor.helpers :as int-helpers]))
 
-(defn about-page
+
+(def externalize-json (int-helpers/on-response ::json-response
+                                               (fn [response]
+                                                 (println response)
+                                                 (-> response
+                                                     (update-in [:body] (fn [body] (if body
+                                                                                     (cheshire/generate-string body)
+                                                                                     body)))
+                                                     (update-in [:headers] (fn [headers] (-> (or headers {})
+                                                                                             (assoc "Content-Type" "application/json"))))))))
+
+
+(defn get-environments
   [request]
-  (ring-resp/response (format "Clojure %s - served from %s"
-                              (clojure-version)
-                              (route/url-for ::about-page))))
+  {:status  200
+   :headers {}
+   :body    {:environments (c-env/list-environments (get-in request [:components :k8s-client]))}})
 
-(defn home-page
+(defn get-health
   [request]
-  (ring-resp/response "Hello World!"))
+  (println (keys request))
+  (println (keys (:components request)))
+  {:status 200
+   :headers {}
+   :body {:healthy true}})
 
-;; Defines "/" and "/about" routes with their associated :get handlers.
-;; The interceptors defined after the verb map (e.g., {:get home-page}
-;; apply to / and its children (/about).
-(def common-interceptors [(body-params/body-params) http/html-body])
+(defn components-on-request-interceptor
+  [components]
+  (int-helpers/on-request ::components-on-request
+                          (fn [request]
+                            (assoc request :components components))))
 
-;; Tabular routes
-(def routes #{["/" :get (conj common-interceptors `home-page)]
-              ["/about" :get (conj common-interceptors `about-page)]})
+(defn create-environment
+  [request]
+  {:status 200
+   :headers {}
+   :body (c-env/create-environment (:json-params request) (get-in request [:components :k8s-client]))})
 
-;; Map-based routes
-;(def routes `{"/" {:interceptors [(body-params/body-params) http/html-body]
-;                   :get home-page
-;                   "/about" {:get about-page}}})
+(defn delete-environment
+  [request]
+  {:status 200
+   :headers {}
+   :body (c-env/delete-environment (:json-params request) (get-in request [:components :k8s-client]))})
 
-;; Terse/Vector-based routes
-;(def routes
-;  `[[["/" {:get home-page}
-;      ^:interceptors [(body-params/body-params) http/html-body]
-;      ["/about" {:get about-page}]]]])
+(def routes
+  `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
+      ["/api"
+       ["/health" {:get get-health}]
+       ["/environments"
+        {:get get-environments}
+        {:post create-environment}
+        {:delete delete-environment}]]]]])
 
 
 ;; Consumed by soil.server/create-server
 ;; See http/default-interceptors for additional options you can configure
-(def service {:env :prod
+(def service {:env                     :prod
               ;; You can bring your own non-default interceptors. Make
               ;; sure you include routing and set it up right for
               ;; dev-mode. If you do, many other keys for configuring
               ;; default interceptors will be ignored.
               ;; ::http/interceptors []
-              ::http/routes routes
+              ::http/routes            routes
 
               ;; Uncomment next line to enable CORS support, add
               ;; string(s) specifying scheme, host and port for
@@ -62,18 +90,17 @@
               ;;                                                          :frame-ancestors "'none'"}}
 
               ;; Root for resource interceptor that is available by default.
-              ::http/resource-path "/public"
+              ::http/resource-path     "/public"
 
               ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
               ;;  This can also be your own chain provider/server-fn -- http://pedestal.io/reference/architecture-overview#_chain_provider
-              ::http/type :jetty
+              ::http/type              :jetty
               ;;::http/host "localhost"
-              ::http/port 8080
+              ::http/port              8080
               ;; Options to pass to the container (Jetty)
               ::http/container-options {:h2c? true
-                                        :h2? false
+                                        :h2?  false
                                         ;:keystore "test/hp/keystore.jks"
                                         ;:key-password "password"
                                         ;:ssl-port 8443
                                         :ssl? false}})
-
