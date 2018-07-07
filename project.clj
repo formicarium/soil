@@ -32,7 +32,9 @@
                   ["clojars"  {:url "https://clojars.org/repo/"}]]
 
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "soil.server/run-dev"]}
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.4"]]}
+                   :plugins [[lein-midje "3.2.1"]]
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.4"]
+                                  [midje "1.9.1"]]}
              :uberjar {:aot [soil.server]}}
   :main ^{:skip-aot true} soil.server)
 

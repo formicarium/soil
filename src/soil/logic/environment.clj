@@ -3,3 +3,4 @@
 (defn namespace->environment
   [namespace]
   {:name (get-in namespace [:metadata :name])})
+

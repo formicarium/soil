@@ -38,12 +38,10 @@
   [components-map]
   (int-helpers/on-request ::inject-components
                           (fn [request]
-                            (println request)
                             (assoc request :components components-map))))
 
 (defn add-interceptor
   [service interceptor]
-  (println (int/interceptor? interceptor))
   (update-in service [::http/interceptors] #(vec (cons interceptor %))))
 
 
