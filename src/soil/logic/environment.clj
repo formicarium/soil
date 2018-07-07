@@ -4,3 +4,7 @@
   [namespace]
   {:name (get-in namespace [:metadata :name])})
 
+(defn namespaces->environments
+  [namespaces]
+  (map namespaces namespace->environment))
+

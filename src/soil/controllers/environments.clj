@@ -10,7 +10,7 @@
 (defn list-environments
   [k8s-client]
   (->> (p-k8s/list-namespaces k8s-client)
-       (map l-env/namespace->environment)))
+       l-env/namespaces->environments))
 
 (defn delete-environment
   [environment k8s-client]
