@@ -56,7 +56,7 @@
 (def routes
   `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
       ["/api"
-       ["/health" {:get get-health}]
+       ["/health" {:get [:get-health get-health]}]
        ["/environments"
         {:get get-environments}
         {:post create-environment}
