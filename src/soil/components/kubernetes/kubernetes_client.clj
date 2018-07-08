@@ -5,6 +5,7 @@
             [clojure.core.async :refer [<!!]]
             [com.stuartsierra.component :as component]
             [schema.core :as s]
+            [cheshire.core :as cheshire]
             [soil.protocols.config.config :as p-cfg]))
 
 (s/defn create-namespace-impl [ctx namespace-name :- s/Str]
@@ -14,6 +15,8 @@
   (<!! (k8s/delete-namespace ctx {} {:name namespace-name})))
 
 (s/defn create-deployment-impl [ctx deployment]
+  (println "create-deployment" deployment)
+  (println "namespace" (get-in deployment [:metadata :namespace]))
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
                                               {:namespace (get-in deployment [:metadata :namespace])})))
 

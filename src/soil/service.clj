@@ -7,6 +7,7 @@
             [cheshire.core :as cheshire]
             [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
             [soil.controllers.environments :as c-env]
+            [soil.controllers.services :as c-svc]
             [io.pedestal.interceptor.helpers :as int-helpers]))
 
 
@@ -53,6 +54,16 @@
    :headers {}
    :body (c-env/delete-environment (:json-params request) (get-in request [:components :k8s-client]))})
 
+(defn deploy-service
+  [request]
+  (println request)
+  {:status 200
+   :headers {}
+   :body (c-svc/deploy-service (:json-params request)
+                               (or (get-in request [:headers "formicarium-namespace"]) "default")
+                               (get-in request [:components :k8s-client])
+                               (get-in request [:components :configserver]))})
+
 (def routes
   `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
       ["/api"
@@ -60,7 +71,8 @@
        ["/environments"
         {:get get-environments}
         {:post create-environment}
-        {:delete delete-environment}]]]]])
+        {:delete delete-environment}]
+       ["/services" {:post [:deploy-service deploy-service]}]]]]])
 
 
 ;; Consumed by soil.server/create-server

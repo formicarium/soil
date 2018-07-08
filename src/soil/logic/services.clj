@@ -1,6 +1,5 @@
-(ns soil.logic.deployment
-  (:require [schema.core :as s]
-            [soil.protocols.configserver.configserver-client :as p-cs]))
+(ns soil.logic.services
+  (:require [schema.core :as s]))
 
 (s/defn config->deployment
   [service-configuration namespace]
@@ -12,10 +11,15 @@
                 :replicas (or (:replicas service-configuration) 1)
                 :template {:metadata {:labels {:app (:name service-configuration)}}
                            :spec     {:containers [{:name  (:name service-configuration)
-                                                    :image (str "joker-" (:build-tool service-configuration))
+                                                    :image (or (:image service-configuration)
+                                                               (str "joker-" (:build-tool service-configuration)))
                                                     :ports (map #({:containerPort %}) (:ports service-configuration))}]}}}})
 
-(s/defn get-service-deployment
-  [service-args config-server requester]
-  (-> (p-cs/on-deploy-service config-server service-args)
-      (config->deployment (:namespace requester))))
+(defn build-response
+  [k8s-resp]
+  (if (= (:kind k8s-resp) "Deployment")
+    (let [{:keys [name namespace]} (:metadata k8s-resp)]
+      {:services-deployed [{:name name}]
+       :namespace namespace})
+    {:success false
+     :k8s-response k8s-resp}))

@@ -17,6 +17,7 @@
                  [org.slf4j/log4j-over-slf4j "1.7.25"]
                  [prismatic/schema "1.1.9"]
                  [clj-http "3.9.0"]
+                 [http-kit "2.3.0"]
                  [beamly/beamly-core.config "0.1.1"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
