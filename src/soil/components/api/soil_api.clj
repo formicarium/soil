@@ -44,18 +44,34 @@
   [service interceptor]
   (update-in service [::http/interceptors] #(vec (cons interceptor %))))
 
+(defn env=
+  [service-map env]
+  (= env (:env service-map)))
 
+(defn env-test?
+  [service-map]
+  (env= service-map :test))
 
-(defrecord SoilApi [k8s-client configserver]
+(defn env-dev?
+  [service-map]
+  (env= service-map :dev))
+
+(defrecord SoilApi [service-map service]
   component/Lifecycle
   (start [this]
-    (-> service/service
-        server/default-interceptors
-        server/dev-interceptors
-        (add-interceptor (create-interceptor this))
-        server/create-server
-        server/start))
-  (stop [this] this))
+    (if service
+      this
+      (cond-> service-map
+        true                          server/default-interceptors
+        (env-dev? service-map)        server/dev-interceptors
+        true                          (add-interceptor (create-interceptor this))
+        true                          server/create-server
+        (not (env-test? service-map)) server/start
+        true                          ((partial assoc this :service)))))
+  (stop [this]
+    (when (and service (not (env-test? service-map)))
+      (server/stop service))
+    (assoc this :service :nil)))
 
 (defn new-soil-api []
   (map->SoilApi {}))

@@ -20,13 +20,16 @@
                  [beamly/beamly-core.config "0.1.1"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
+  :test-paths ["test/" "selvage/"]
   :repositories  [["central"  {:url "https://repo1.maven.org/maven2/" :snapshots false}]
                   ["clojars"  {:url "https://clojars.org/repo/"}]]
 
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "soil.server/run-dev"]}
                    :plugins [[lein-midje "3.2.1"]]
                    :dependencies [[io.pedestal/pedestal.service-tools "0.5.4"]
-                                  [midje "1.9.1"]]}
+                                  [midje "1.9.1"]
+                                  [clj-http-fake "1.0.3"]
+                                  [nubank/selvage "0.0.1"]]}
              :uberjar {:aot [soil.server]}}
   :main ^{:skip-aot true} soil.server)
 

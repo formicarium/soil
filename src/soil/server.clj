@@ -14,11 +14,11 @@
   "The entry-point for 'lein run-dev'"
   [& args]
   (println "Running system map")
-  (component/start-system soil/system-map))
+  (component/start-system (soil/system-map :dev)))
 
 (defn -main
   "The entry-point for 'lein run'"
   [& args]
   (println "\nCreating your server...")
-  (component/start-system soil/system-map))
+  (component/start-system (soil/system-map :prod)))
 

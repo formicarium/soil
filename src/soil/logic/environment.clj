@@ -6,5 +6,6 @@
 
 (defn namespaces->environments
   [namespaces]
-  (map namespaces namespace->environment))
+  (println namespaces)
+  (map namespace->environment namespaces))
 

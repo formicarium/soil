@@ -104,3 +104,11 @@
                                         ;:key-password "password"
                                         ;:ssl-port 8443
                                         :ssl? false}})
+
+(defn create-service
+  [env]
+  (case env
+    :prod (merge service {:env :prod})
+    :dev  (merge service {:env :dev})
+    :test (merge service {:env :test})))
+

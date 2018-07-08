@@ -24,6 +24,10 @@
 (defn delete-deployment-impl [ctx deployment-name deployment-namespace]
   (<!! (k8s-apps/delete-namespaced-deployment ctx {} {:name      deployment-name
                                                       :namespace deployment-namespace})))
+(defn check-api-health
+  [ctx]
+  (let [api-resources (<!! (k8s/get-api-resources ctx))]
+    (not= (:success api-resources) false)))
 
 (defn raise-errors [apiserver-response]
   (if (and (= (:kind apiserver-response) "Status")
@@ -50,7 +54,11 @@
 
   component/Lifecycle
   (start [this]
-    (assoc this :ctx (k8s/make-context (p-cfg/get-config config [:kubernetes :proxy :url]))))
+    (let [ctx (k8s/make-context (p-cfg/get-config config [:kubernetes :proxy :url]))]
+      (println (check-api-health ctx))
+      (assoc this
+             :ctx ctx
+             :health (check-api-health ctx))))
   (stop [this] (dissoc this :ctx)))
 
 (defn new-k8s-client
