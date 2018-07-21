@@ -28,7 +28,7 @@
 (defn str->json [str] (cheshire/parse-string str true))
 
 
-(defn create-env-req! [service] (response-for service :post "/api/environments"
+(defn create-env-req! [service] (response-for service :post "/api/devspaces"
                                               :headers {"Content-Type" "application/json"}
                                               :body    (json->str {:name "carlos"})))
 
@@ -61,7 +61,7 @@
 (defn create-service-req! [service]
   (response-for service :post "/api/services"
                 :headers {"Content-Type" "application/json"
-                          "Formicarium-Namespace" "carlos"}
+                          "Formicarium-Devspace" "carlos"}
                 :body (json->str service-args)))
 
 (defn create-service!
@@ -75,14 +75,14 @@
                                                                                 :body   (json->str service-configuration)}]
                              (create-service-req! (:service-fn world)))))
 
-(flow "spin up a new environment"
+(flow "spin up a new devspace"
       init!
       (fn [world] (let [service (:service-fn world)] (assoc world :service-health (response-for service :get "/api/health"))))
       (fact "health must answer 200"
             (:service-health *world*) => (contains {:status 200
                                                     :body   (json->str {:healthy true})}))
       create-env!
-      (fact "environment 'carlos' must have been created"
+      (fact "devspace 'carlos' must have been created"
             (:env-created *world*) => (contains {:status 200
                                                  :body   (json->str {:name "carlos"})}))
       create-service!

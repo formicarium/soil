@@ -31,15 +31,15 @@
       :body
       str->json))
 
-(s/defn on-startup-environment :- {s/Keyword ServiceConfiguration}
+(s/defn on-new-devspace :- {s/Keyword ServiceConfiguration}
   [env config-server]
-  (-> (http-post (str (:url config-server) "/onstartupenvironment") env)
+  (-> (http-post (str (:url config-server) "/onnewdevspace") env)
       :body
       str->json))
 
 (defrecord ConfigServer [config]
   p-cs/ConfigServerClient
-  (on-startup-environment [this env] (on-startup-environment env this))
+  (on-new-devspace [this env] (on-new-devspace env this))
   (on-deploy-service [this service-args] (on-deploy-service service-args this))
 
   component/Lifecycle

@@ -6,7 +6,7 @@
             [io.pedestal.interceptor :as int]
             [cheshire.core :as cheshire]
             [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
-            [soil.controllers.environments :as c-env]
+            [soil.controllers.devspaces :as c-env]
             [soil.controllers.services :as c-svc]
             [io.pedestal.interceptor.helpers :as int-helpers]))
 
@@ -22,11 +22,11 @@
                                                                                              (assoc "Content-Type" "application/json"))))))))
 
 
-(defn get-environments
+(defn get-devspaces
   [request]
   {:status  200
    :headers {}
-   :body    {:environments (c-env/list-environments (get-in request [:components :k8s-client]))}})
+   :body    {:devspaces (c-env/list-devspaces (get-in request [:components :k8s-client]))}})
 
 (defn get-health
   [request]
@@ -42,17 +42,17 @@
                           (fn [request]
                             (assoc request :components components))))
 
-(defn create-environment
+(defn create-devspace
   [request]
-  {:status 200
+  {:status  200
    :headers {}
-   :body (c-env/create-environment (:json-params request) (get-in request [:components :k8s-client]))})
+   :body    (c-env/create-devspace (:json-params request) (get-in request [:components :k8s-client]))})
 
-(defn delete-environment
+(defn delete-devspace
   [request]
-  {:status 200
+  {:status  200
    :headers {}
-   :body (c-env/delete-environment (:json-params request) (get-in request [:components :k8s-client]))})
+   :body    (c-env/delete-devspace (:json-params request) (get-in request [:components :k8s-client]))})
 
 (defn deploy-service
   [request]
@@ -60,7 +60,7 @@
   {:status 200
    :headers {}
    :body (c-svc/deploy-service (:json-params request)
-                               (or (get-in request [:headers "formicarium-namespace"]) "default")
+                               (or (get-in request [:headers "formicarium-devspace"]) "default")
                                (get-in request [:components :k8s-client])
                                (get-in request [:components :configserver]))})
 
@@ -68,10 +68,10 @@
   `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
       ["/api"
        ["/health" {:get [:get-health get-health]}]
-       ["/environments"
-        {:get get-environments}
-        {:post create-environment}
-        {:delete delete-environment}]
+       ["/devspaces"
+        {:get get-devspaces}
+        {:post create-devspace}
+        {:delete delete-devspace}]
        ["/services" {:post [:deploy-service deploy-service]}]]]]])
 
 
