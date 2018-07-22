@@ -57,12 +57,20 @@
 (defn deploy-service
   [request]
   (println request)
+  {:status  200
+   :headers {}
+   :body    (c-svc/deploy-service! (:json-params request)
+                                   (or (get-in request [:headers "formicarium-devspace"]) "default")
+                                   (get-in request [:components :k8s-client])
+                                   (get-in request [:components :configserver]))})
+
+(defn destroy-service
+  [request]
   {:status 200
    :headers {}
-   :body (c-svc/deploy-service (:json-params request)
-                               (or (get-in request [:headers "formicarium-devspace"]) "default")
-                               (get-in request [:components :k8s-client])
-                               (get-in request [:components :configserver]))})
+   :body (c-svc/destroy-service! (get-in request [:json-params :name])
+                                 (or (get-in request [:headers "formicarium-devspace"]) "default")
+                                 (get-in request [:components :k8s-client]))})
 
 (def routes
   `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
@@ -72,7 +80,9 @@
         {:get get-devspaces}
         {:post create-devspace}
         {:delete delete-devspace}]
-       ["/services" {:post [:deploy-service deploy-service]}]]]]])
+       ["/services"
+        {:post [:deploy-service deploy-service]}
+        {:delete [:destroy-service destroy-service]}]]]]])
 
 
 ;; Consumed by soil.server/create-server
