@@ -47,19 +47,32 @@ jobs:
       - run: lein uberjar
       - store_artifacts:
           path: ~/repo/target/soil-0.0.1-SNAPSHOT-standalone.jar
-          destination: jars/soil.jar
+          destination: jars/soil-${CIRCLE_SHA1}.jar
+      - persist_to_workspace:
+          root: ~/repo/target
+          paths:
+            - soil-0.0.1-SNAPSHOT-standalone.jar
   build-docker:
     machine: true
     working_directory: ~/repo
     steps:
       - checkout
+      - attach_workspace:
+          at: target
       - run: docker build -t soil:circleci .
+      - run: docker save -o soil-${CIRCLE_SHA1}.tar soil:circleci
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - soil-${CIRCLE_SHA1}.tar
   publish-image:
     machine: true
     working_directory: ~/repo
     steps:
-      - checkout
-      - run:
+      - attach_workspace:
+          at: ~/repo
+      - run: docker load -i soil-${CIRCLE_SHA1}.tar
+      - deploy:
           name: publish
           command: |
             docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
