@@ -5,7 +5,6 @@
 
 (defn deploy-service!
   [service-args devspace k8s-client config-server]
-  (println "deploy-service" devspace)
   (->> service-args
        (p-cs/on-deploy-service config-server)
        ((fn [svc-config] (l-svc/config->deployment svc-config devspace)))

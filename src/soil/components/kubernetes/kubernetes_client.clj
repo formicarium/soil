@@ -15,8 +15,6 @@
   (<!! (k8s/delete-namespace ctx {} {:name namespace-name})))
 
 (s/defn create-deployment-impl [ctx deployment]
-  (println "create-deployment" deployment)
-  (println "namespace" (get-in deployment [:metadata :namespace]))
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
                                               {:namespace (get-in deployment [:metadata :namespace])})))
 
@@ -58,7 +56,7 @@
   component/Lifecycle
   (start [this]
     (let [ctx (k8s/make-context (p-cfg/get-config config [:kubernetes :proxy :url]))]
-      (println (check-api-health ctx))
+      (check-api-health ctx)
       (assoc this
              :ctx ctx
              :health (check-api-health ctx))))

@@ -13,7 +13,6 @@
 
 (def externalize-json (int-helpers/on-response ::json-response
                                                (fn [response]
-                                                 (println response)
                                                  (-> response
                                                      (update-in [:body] (fn [body] (if body
                                                                                      (cheshire/generate-string body)
@@ -30,8 +29,6 @@
 
 (defn get-health
   [request]
-  (println (keys request))
-  (println (keys (:components request)))
   {:status 200
    :headers {}
    :body {:healthy true}})
@@ -56,7 +53,6 @@
 
 (defn deploy-service
   [request]
-  (println request)
   {:status  200
    :headers {}
    :body    (c-svc/deploy-service! (:json-params request)

@@ -9,8 +9,14 @@
             [io.pedestal.http.route :as route]
             [io.pedestal.test :refer [response-for]]
             [soil.service :as service]
-            [soil.components.api.soil-api :as soil-api])
+            [soil.components.api.soil-api :as soil-api]
+            [beamly-core.config :as cfg]
+            [clojure.java.io :as io])
   (:use org.httpkit.fake))
+
+(def test-config (cfg/load-config (.getPath (io/resource "test.conf"))))
+(def kubernetes-proxy-url (get-in test-config [:kubernetes :proxy :url]))
+(def configserver-url (get-in test-config [:configserver :url]))
 
 (defn expose-service
   [world]
@@ -30,15 +36,15 @@
 
 (defn create-env-req! [service] (response-for service :post "/api/devspaces"
                                               :headers {"Content-Type" "application/json"}
-                                              :body    (json->str {:name "carlos"})))
+                                              :body (json->str {:name "carlos"})))
 
 (defn create-env!
   [world]
-  (assoc world :env-created (with-fake-http [{:url    "http://localhost:9000/api/v1/namespaces"
+  (assoc world :env-created (with-fake-http [{:url    (str kubernetes-proxy-url "/api/v1/namespaces")
                                               :method :post} {:body (json->str {:apiVersion "v1"
                                                                                 :kind       "Namespace"
                                                                                 :metadata   {:name "carlos"}})}]
-                              (create-env-req! (:service-fn world)))))
+                                            (create-env-req! (:service-fn world)))))
 
 (def deployment-example {:apiVersion "apps/v1"
                          :kind       "Deployment"
@@ -51,29 +57,29 @@
                                                                           :image "nginx:1.10"
                                                                           :ports [{:containerPort 80}]}]}}}})
 
-(def service-args {:name "nginx"
+(def service-args {:name      "nginx"
                    :randomOps 42})
 
 (def service-configuration {:environment-variables {:foo "foo"}
-                            :image "nginx:1.10"})
+                            :image                 "nginx:1.10"})
 
 
 (defn create-service-req! [service]
   (response-for service :post "/api/services"
-                :headers {"Content-Type" "application/json"
+                :headers {"Content-Type"         "application/json"
                           "Formicarium-Devspace" "carlos"}
                 :body (json->str service-args)))
 
 (defn create-service!
   [world]
-  (assoc world :services-deployed (with-fake-http [{:url    "http://localhost:9000/apis/apps/v1/namespaces/carlos/deployments"
-                                             :method :post} {:status 200
-                                                             :body   (json->str deployment-example)}
-                                            {:url    "https://configserver.com/ondeployservice"
-                                             :method :post
-                                             :body   (json->str service-args)} {:status 200
-                                                                                :body   (json->str service-configuration)}]
-                             (create-service-req! (:service-fn world)))))
+  (assoc world :services-deployed (with-fake-http [{:url    (str kubernetes-proxy-url "/apis/apps/v1/namespaces/carlos/deployments")
+                                                    :method :post} {:status 200
+                                                                    :body   (json->str deployment-example)}
+                                                   {:url    (str configserver-url "/ondeployservice")
+                                                    :method :post
+                                                    :body   (json->str service-args)} {:status 200
+                                                                                       :body   (json->str service-configuration)}]
+                                                  (create-service-req! (:service-fn world)))))
 
 (flow "spin up a new devspace"
       init!
@@ -89,4 +95,4 @@
       (fact "service 'nginx' must be deployed"
             (:services-deployed *world*) => (contains {:status 200
                                                        :body   (json->str {"services-deployed" [{"name" "nginx"}]
-                                                                           "namespace" "carlos"})})))
+                                                                           "namespace"         "carlos"})})))

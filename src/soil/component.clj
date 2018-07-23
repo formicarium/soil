@@ -8,7 +8,7 @@
 
 (defn system-map
   [env]
-  {:config       (config/new-config)
+  {:config       (config/new-config env)
    :service-map  (service/create-service env)
    :configserver (component/using (configserver-client/new-configserver) [:config])
    :k8s-client   (component/using (kubernetes-client/new-k8s-client) [:config])
