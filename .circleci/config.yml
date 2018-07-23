@@ -50,11 +50,15 @@ jobs:
           destination: jars/soil.jar
   build-docker:
     machine: true
+    working_directory: ~/repo
     steps:
+      - checkout
       - run: docker build -t soil:circleci .
   publish-image:
     machine: true
+    working_directory: ~/repo
     steps:
+      - checkout
       - run:
           name: publish
           command: |
