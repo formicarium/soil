@@ -51,12 +51,16 @@ jobs:
   build-docker:
     machine: true
     steps:
-      - run: docker build -t formicarium/soil:$VERSION .
+      - run: docker build -t soil:circleci .
   publish-image:
     machine: true
     steps:
-      - run: docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
-      - run: docker push formicarium/soil:$VERSION
+      - run:
+          name: publish
+          command: |
+            docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
+            docker tag soil:circleci formicarium/soil:$CIRCLE_SHA1
+            docker push formicarium/soil:$CIRCLE_SHA1
 workflows:
   version: 2
   soil_workflow:
@@ -71,3 +75,6 @@ workflows:
       - publish-image:
           requires:
             - build-docker
+          filters:
+            branches:
+              only: master
