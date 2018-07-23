@@ -32,7 +32,7 @@ jobs:
           key: v1-dependencies-{{ checksum "project.clj" }}
 
       # run tests!
-      - run: lein test
+      - run: lein midje
   build-artifact:
     docker:
       - image: circleci/clojure:lein-2.7.1
