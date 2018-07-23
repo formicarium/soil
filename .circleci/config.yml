@@ -64,7 +64,7 @@ jobs:
       - persist_to_workspace:
           root: ~/repo
           paths:
-            - soil-${CIRCLE_SHA1}.tar
+            - soil-*.tar
   publish-image:
     machine: true
     working_directory: ~/repo
