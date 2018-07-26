@@ -24,6 +24,21 @@
                                       :volumes    [{:name   "git-creds"
                                                     :secret {:secretName "git-credentials"}}]}}}})
 
+(s/defn gen-hive-deployment
+  [devspace :- s/Str config]
+  {:apiVersion "apps/v1"
+   :kind       "Deployment"
+   :metadata   {:name      "hive"
+                :namespace devspace}
+   :spec       {:selector {:matchLabels {:app "hive"}}
+                :replicas 1
+                :template {:metadata {:labels {:app "hive"}}
+                           :spec     {:containers [{:name         "hive"
+                                                    :image        (str "formicarium/hive:" (get-in config [:hive :version]))
+                                                    :ports        [{:name          "hive-api"
+                                                                    :containerPort 8080}]}]}}}})
+
+
 (defn build-response
   [k8s-resp]
   (if (= (:kind k8s-resp) "Deployment")
