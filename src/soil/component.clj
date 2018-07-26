@@ -21,6 +21,6 @@
 (defn system-map
   [env]
   (case env
-    "test" (merge (base env) (test-system))
+    :test (merge (base env) (test-system))
     (base env)))
 
