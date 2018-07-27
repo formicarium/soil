@@ -57,16 +57,15 @@
   (start [this]
     (if service
       this
-      (cond-> service-map
-              true server/default-interceptors
-              true server/dev-interceptors
-              true (add-interceptor (create-interceptor this))
-              true server/create-server
-              true server/start
-              true ((partial assoc this :service)))))
+      (assoc this :service
+                  (-> service-map
+                      server/default-interceptors
+                      server/dev-interceptors
+                      (add-interceptor (create-interceptor this))
+                      server/create-server
+                      server/start))))
   (stop [this]
-    (when (and service (not (env-test? service-map)))
-      (server/stop service))
+    (server/stop service)
     (assoc this :service :nil)))
 
 (defn new-soil-api []
