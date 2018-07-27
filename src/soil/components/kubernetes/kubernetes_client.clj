@@ -37,6 +37,7 @@
     (not= (:success api-resources) false)))
 
 (defn raise-errors [apiserver-response]
+  (println apiserver-response)
   (if (and (= (:kind apiserver-response) "Status")
            (not= (:status apiserver-response) "Success"))
     (do (println apiserver-response) (throw (ex-info "Error from ApiServer" apiserver-response)))
@@ -57,7 +58,8 @@
     (-> (create-service-impl (:ctx this) service)
         (raise-errors)))
   (list-namespaces [this]
-    (list-namespaces-impl (:ctx this)))
+    (-> (list-namespaces-impl (:ctx this))
+        (raise-errors)))
   (create-deployment [this deployment]
     (-> (create-deployment-impl (:ctx this) deployment)
         (raise-errors)))
@@ -67,8 +69,8 @@
 
   component/Lifecycle
   (start [this]
-    (let [ctx (k8s/make-context (p-cfg/get-config config [:kubernetes :proxy :url]))]
-      (check-api-health ctx)
+    (let [ctx (k8s/make-context "http://localhost:9000")]
+      (println ctx (check-api-health ctx))
       (assoc this
              :ctx ctx
              :health (check-api-health ctx))))
