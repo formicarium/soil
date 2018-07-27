@@ -43,7 +43,7 @@
   (on-deploy-service [this service-args] (on-deploy-service service-args this))
 
   component/Lifecycle
-  (start [this] (assoc this :url (p-cfg/get-config config [:configserver :url])))
+  (start [this] (assoc this :url "https://config-server.formicarium.host"))
   (stop [this] (dissoc this :url)))
 
 (defn new-configserver
