@@ -24,6 +24,36 @@
                                       :volumes    [{:name   "git-creds"
                                                     :secret {:secretName "git-credentials"}}]}}}})
 
+(defn config->ingress
+  [service-configuration namespace]
+  {:apiVersion "extensions/v1beta1"
+   :kind       "Ingress"
+   :metadata   {:name      (:name service-configuration)
+                :namespace namespace}
+   :spec       {:rules (->> (:ports service-configuration)
+                            (map (fn [port] {:host (:host service-configuration)
+                                             :http {:paths [{:backend {:serviceName (:name service-configuration)
+                                                                       :servicePort port}}]}}))
+                            (vec))}})
+
+(defn config->service
+  [service-configuration namespace]
+  {:apiVersion "v1"
+   :kind       "Service"
+   :metadata   {:name      (:name service-configuration)
+                :namespace namespace}
+   :spec       {:ports (->> (:ports service-configuration)
+                            (map (fn [port] {:protocol   "TCP"
+                                             :port       port
+                                             :targetPort port}))
+                            (vec))}})
+
+(defn config->kubernetes
+  [service-configuration namespace]
+  {:deployment (config->deployment service-configuration namespace)
+   :ingress    (config->ingress service-configuration namespace)
+   :service    (config->service service-configuration namespace)})
+
 (s/defn gen-hive-deployment
   [devspace :- s/Str config]
   {:apiVersion "apps/v1"
@@ -33,10 +63,10 @@
    :spec       {:selector {:matchLabels {:app "hive"}}
                 :replicas 1
                 :template {:metadata {:labels {:app "hive"}}
-                           :spec     {:containers [{:name         "hive"
-                                                    :image        (str "formicarium/hive:" (get-in config [:hive :version]))
-                                                    :ports        [{:name          "hive-api"
-                                                                    :containerPort 8080}]}]}}}})
+                           :spec     {:containers [{:name  "hive"
+                                                    :image (str "formicarium/hive:" (get-in config [:hive :version]))
+                                                    :ports [{:name          "hive-api"
+                                                             :containerPort 8888}]}]}}}})
 
 
 (defn build-response
