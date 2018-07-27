@@ -58,7 +58,7 @@
   component/Lifecycle
   (start [this]
     (let [ctx (k8s/make-context (p-cfg/get-config config [:kubernetes :proxy :url]))]
-      (check-api-health ctx)
+      (println ctx (check-api-health ctx))
       (assoc this
              :ctx ctx
              :health (check-api-health ctx))))
