@@ -87,6 +87,7 @@
               ::http/routes          routes
               ::http/allowed-origins {:creds true :allowed-origins (constantly true)}
               ::http/type            :jetty
+              ::http/join?           true
               ::http/port            8080})
 
 (defn create-service
