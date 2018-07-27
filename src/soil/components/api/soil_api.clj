@@ -59,10 +59,10 @@
       this
       (cond-> service-map
               true server/default-interceptors
-              (env-dev? service-map) server/dev-interceptors
+              true server/dev-interceptors
               true (add-interceptor (create-interceptor this))
               true server/create-server
-              (not (env-test? service-map)) server/start
+              true server/start
               true ((partial assoc this :service)))))
   (stop [this]
     (when (and service (not (env-test? service-map)))
