@@ -1,6 +1,7 @@
 (ns soil.components.kubernetes.kubernetes-client
   (:require [kubernetes.api.v1 :as k8s]
             [kubernetes.api.apps-v1 :as k8s-apps]
+            [kubernetes.api.extensions-v1beta1 :as extensions-v1beta1]
             [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
             [clojure.core.async :refer [<!!]]
             [com.stuartsierra.component :as component]
@@ -18,8 +19,13 @@
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
                                               {:namespace (get-in deployment [:metadata :namespace])})))
 
-(defn list-namespaces-impl
-  [ctx]
+(defn create-ingress-impl [ctx ingress]
+  (<!! (extensions-v1beta1/create-namespaced-ingress ctx ingress {:namespace (get-in ingress [:metadata :namespace])})))
+
+(defn create-service-impl [ctx service]
+  (<!! (k8s/create-namespaced-service ctx service {:namespace (get-in service [:metadata :namespace])})))
+
+(defn list-namespaces-impl [ctx]
   (:items (<!! (k8s/list-namespace ctx))))
 
 (defn delete-deployment-impl [ctx deployment-name deployment-namespace]
@@ -44,6 +50,12 @@
         (raise-errors)))
   (delete-namespace [this namespace-name]
     (-> (delete-namespace-impl (:ctx this) namespace-name)
+        (raise-errors)))
+  (create-ingress [this ingress]
+    (-> (create-ingress-impl (:ctx this) ingress)
+        (raise-errors)))
+  (create-service [this service]
+    (-> (create-service-impl (:ctx this) service)
         (raise-errors)))
   (list-namespaces [this]
     (-> (list-namespaces-impl (:ctx this))
