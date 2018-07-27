@@ -1,11 +1,7 @@
 (ns soil.service
   (:require [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [ring.util.response :as ring-resp]
-            [io.pedestal.interceptor :as int]
             [cheshire.core :as cheshire]
-            [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
             [soil.controllers.devspaces :as c-env]
             [soil.controllers.services :as c-svc]
             [io.pedestal.interceptor.helpers :as int-helpers]))
@@ -19,7 +15,6 @@
                                                                                      body)))
                                                      (update-in [:headers] (fn [headers] (-> (or headers {})
                                                                                              (assoc "Content-Type" "application/json"))))))))
-
 
 (defn get-devspaces
   [request]
@@ -85,7 +80,8 @@
 ;; See http/default-interceptors for additional options you can configure
 (def service {:env                   :prod
               ::http/routes          routes
-              ::http/allowed-origins {:creds true :allowed-origins (constantly true)}
+              ::http/allowed-origins {:creds           true
+                                      :allowed-origins (constantly true)}
               ::http/type            :jetty
               ::http/join?           true
               ::http/port            8080})
