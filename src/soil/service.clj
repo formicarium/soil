@@ -6,7 +6,6 @@
             [soil.controllers.services :as c-svc]
             [io.pedestal.interceptor.helpers :as int-helpers]))
 
-
 (def externalize-json (int-helpers/on-response ::json-response
                                                (fn [response]
                                                  (-> response
