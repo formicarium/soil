@@ -97,8 +97,8 @@
               ;;
               ;; "http://localhost:8080"
               ;;
-              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}
-              ::server/secure-headers  {:content-security-policy-settings {:object-src "none"}}
+              ::http/allowed-origins   {:creds true :allowed-origins (constantly true)}
+              ::http/secure-headers    {:content-security-policy-settings {:object-src "none"}}
 
               ;; Tune the Secure Headers
               ;; and specifically the Content Security Policy appropriate to your service/application

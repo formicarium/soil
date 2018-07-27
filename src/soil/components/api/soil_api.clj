@@ -1,12 +1,8 @@
 (ns soil.components.api.soil-api
   (:require [com.stuartsierra.component :as component]
-            [soil.protocols.config.config :as p-cfg]
-            [schema.core :as s]
             [cheshire.core :as cheshire]
-            [beamly-core.config :as cfg]
             [io.pedestal.http :as server]
             [io.pedestal.http :as http]
-            [soil.service :as service]
             [io.pedestal.interceptor :as int]
             [io.pedestal.interceptor.helpers :as int-helpers]))
 
@@ -29,7 +25,7 @@
 
 (defn inject-components-on-request
   [components-map]
-  {:name ::inject-components-on-request
+  {:name  ::inject-components-on-request
    :enter (fn [context]
             (assoc-in context [:request :components] components-map))})
 
@@ -62,12 +58,12 @@
     (if service
       this
       (cond-> service-map
-        true                          server/default-interceptors
-        (env-dev? service-map)        server/dev-interceptors
-        true                          (add-interceptor (create-interceptor this))
-        true                          server/create-server
-        (not (env-test? service-map)) server/start
-        true                          ((partial assoc this :service)))))
+              true server/default-interceptors
+              (env-dev? service-map) server/dev-interceptors
+              true (add-interceptor (create-interceptor this))
+              true server/create-server
+              (not (env-test? service-map)) server/start
+              true ((partial assoc this :service)))))
   (stop [this]
     (when (and service (not (env-test? service-map)))
       (server/stop service))
