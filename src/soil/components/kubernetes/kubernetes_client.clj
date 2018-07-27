@@ -31,6 +31,7 @@
     (not= (:success api-resources) false)))
 
 (defn raise-errors [apiserver-response]
+  (println apiserver-response)
   (if (and (= (:kind apiserver-response) "Status")
            (not= (:status apiserver-response) "Success"))
     (do (println apiserver-response) (throw (ex-info "Error from ApiServer" apiserver-response)))
@@ -45,7 +46,8 @@
     (-> (delete-namespace-impl (:ctx this) namespace-name)
         (raise-errors)))
   (list-namespaces [this]
-    (list-namespaces-impl (:ctx this)))
+    (-> (list-namespaces-impl (:ctx this))
+        (raise-errors)))
   (create-deployment [this deployment]
     (-> (create-deployment-impl (:ctx this) deployment)
         (raise-errors)))
