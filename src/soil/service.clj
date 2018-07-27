@@ -29,9 +29,9 @@
 
 (defn get-health
   [request]
-  {:status 200
+  {:status  200
    :headers {}
-   :body {:healthy true}})
+   :body    {:healthy true}})
 
 (defn components-on-request-interceptor
   [components]
@@ -62,11 +62,11 @@
 
 (defn destroy-service
   [request]
-  {:status 200
+  {:status  200
    :headers {}
-   :body (c-svc/destroy-service! (get-in request [:json-params :name])
-                                 (or (get-in request [:headers "formicarium-devspace"]) "default")
-                                 (get-in request [:components :k8s-client]))})
+   :body    (c-svc/destroy-service! (get-in request [:json-params :name])
+                                    (or (get-in request [:headers "formicarium-devspace"]) "default")
+                                    (get-in request [:components :k8s-client]))})
 
 (def routes
   `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
@@ -97,7 +97,8 @@
               ;;
               ;; "http://localhost:8080"
               ;;
-              ;;::http/allowed-origins ["scheme://host:port"]
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}
+              ::server/secure-headers  {:content-security-policy-settings {:object-src "none"}}
 
               ;; Tune the Secure Headers
               ;; and specifically the Content Security Policy appropriate to your service/application
@@ -118,15 +119,12 @@
               ;; Options to pass to the container (Jetty)
               ::http/container-options {:h2c? true
                                         :h2?  false
-                                        ;:keystore "test/hp/keystore.jks"
-                                        ;:key-password "password"
-                                        ;:ssl-port 8443
                                         :ssl? false}})
 
 (defn create-service
   [env]
   (case env
     :prod (merge service {:env :prod})
-    :dev  (merge service {:env :dev})
+    :dev (merge service {:env :dev})
     :test (merge service {:env :test})))
 
