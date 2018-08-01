@@ -1,4 +1,5 @@
-(ns soil.logic.devspace)
+(ns soil.logic.devspace
+  (:require [soil.config :as config]))
 
 (defn namespace->devspace
   [namespace]
@@ -6,5 +7,6 @@
 
 (defn namespaces->devspaces
   [namespaces]
-  (map namespace->devspace namespaces))
+  (->> (filter #(= config/fmc-devspace-label (-> % :metadata :labels :kind)) namespaces)
+       (map namespace->devspace)))
 

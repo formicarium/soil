@@ -1,7 +1,7 @@
 (ns soil.protocols.kubernetes.kubernetes-client)
 
 (defprotocol KubernetesClient
-  (create-namespace [this namespace]                             "Creates a Kubernetes namespace")
+  (create-namespace [this namespace] [this namespace labels]     "Creates a Kubernetes namespace")
   (delete-namespace [this namespace-name]                        "Deletes a Kubernetes namespace")
   (list-namespaces [this]                                        "List Kubernetes namespaces")
   (create-ingress [this ingress]                                 "Creates a Kubernetes ingress")

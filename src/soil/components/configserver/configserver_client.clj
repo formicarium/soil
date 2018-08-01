@@ -24,6 +24,7 @@
                       :headers {"Content-Type" "application/json"}}))
 (defn str->json [str]
   (cheshire/parse-string str true))
+
 (s/defn on-deploy-service :- ServiceConfiguration
   [service-args :- ServiceArgs
    config-server]
@@ -43,7 +44,7 @@
   (on-deploy-service [this service-args] (on-deploy-service service-args this))
 
   component/Lifecycle
-  (start [this] (assoc this :url "http://config-server.formicarium.host"))
+  (start [this] (assoc this :url (p-cfg/get-config config [:configserver :url])))
   (stop [this] (dissoc this :url)))
 
 (defn new-configserver
