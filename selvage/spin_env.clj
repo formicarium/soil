@@ -62,6 +62,7 @@
                    :randomOps 42})
 
 (def service-configuration {:environment-variables {:foo "foo"}
+                            :name                  "nginx-svc"
                             :image                 "nginx:1.10"})
 
 
@@ -94,12 +95,12 @@
       init!
       (fn [world] (let [service (:service-fn world)] (assoc world :service-health (response-for service :get "/api/health"))))
       (fact "health must answer 200"
-        (:service-health *world*) => (contains {:status 200
-                                                :body   (json->str {:healthy true})}))
+            (:service-health *world*) => (contains {:status 200
+                                                    :body   (json->str {:healthy true})}))
       create-env!
       (fact "devspace 'carlos' must have been created"
-        (:env-created *world*) => (contains {:status 200
-                                             :body   (json->str {:name "carlos"})}))
+            (:env-created *world*) => (contains {:status 200
+                                                 :body   (json->str {:name "carlos"})}))
       create-service!
       (fact "service 'nginx' must be deployed"
-        (:services-deployed *world*) => (contains {:status 200})))
+            (:services-deployed *world*) => (contains {:status 200})))
