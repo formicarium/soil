@@ -3,19 +3,12 @@
             [schema.core :as s]
             [me.raynes.conch.low-level :as sh]))
 
-(defn start-api-server!
-  []
-  (sh/proc "kubectl"
-           "proxy"
-           "--port=9000"))
-
-(defrecord KubernetesApiServer [config]
+(defrecord KubernetesApiServer []
   component/Lifecycle
   (start [this]
-    (assoc this
-      :api-server (start-api-server!)))
+    (assoc this :api-server (sh/proc "kubectl" "proxy" "--port=9000")))
   (stop [this]
     (.destroy (get-in this [:api-server :process]))
     (dissoc this :api-server)))
 
-(defn new-k8s-api-server [] (map->KubernetesApiServer {}))
+(defn new-k8s-api-server [] (->KubernetesApiServer))

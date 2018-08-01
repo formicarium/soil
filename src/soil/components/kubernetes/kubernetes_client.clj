@@ -6,11 +6,11 @@
             [clojure.core.async :refer [<!!]]
             [com.stuartsierra.component :as component]
             [schema.core :as s]
-            [cheshire.core :as cheshire]
             [soil.protocols.config.config :as p-cfg]))
 
-(s/defn create-namespace-impl [ctx namespace-name :- s/Str]
-  (<!! (k8s/create-namespace ctx {:metadata {:name namespace-name}})))
+(s/defn create-namespace-impl [ctx namespace-name :- s/Str labels :- (s/pred map?)]
+  (<!! (k8s/create-namespace ctx {:metadata {:name   namespace-name
+                                             :labels labels}})))
 
 (s/defn delete-namespace-impl [ctx namespace-name :- s/Str]
   (<!! (k8s/delete-namespace ctx {} {:name namespace-name})))
@@ -46,8 +46,12 @@
 (defrecord KubernetesClient [config]
   p-k8s/KubernetesClient
   (create-namespace [this namespace]
-    (-> (create-namespace-impl (:ctx this) namespace)
+    (p-k8s/create-namespace this namespace {}))
+
+  (create-namespace [this namespace labels]
+    (-> (create-namespace-impl (:ctx this) namespace labels)
         (raise-errors)))
+
   (delete-namespace [this namespace-name]
     (-> (delete-namespace-impl (:ctx this) namespace-name)
         (raise-errors)))
@@ -69,11 +73,11 @@
 
   component/Lifecycle
   (start [this]
-    (let [ctx (k8s/make-context "http://localhost:9000")]
+    (let [ctx (k8s/make-context (p-cfg/get-config config [:kubernetes :proxy :url]))]
       (println ctx (check-api-health ctx))
       (assoc this
-             :ctx ctx
-             :health (check-api-health ctx))))
+        :ctx ctx
+        :health (check-api-health ctx))))
   (stop [this] (dissoc this :ctx)))
 
 (defn new-k8s-client
