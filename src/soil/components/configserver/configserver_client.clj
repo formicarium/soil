@@ -7,12 +7,13 @@
             [soil.protocols.config.config :as p-cfg]))
 
 (def ServiceConfiguration
-  {(s/optional-key :environment-variables) (s/maybe {s/Keyword s/Str})
-   (s/optional-key :image)                 (s/maybe s/Str)
-   (s/optional-key :git)                   (s/maybe s/Str)
-   (s/optional-key :git-branch)            (s/maybe s/Str)
-   (s/optional-key :build-tool)            (s/maybe s/Str)
-   (s/optional-key :ports)                 (s/maybe [s/Int])})
+  {(s/optional-key :environment-variables) {s/Keyword s/Str}
+   (s/optional-key :image)                 s/Str
+   :name                                   s/Str
+   (s/optional-key :git)                   s/Str
+   (s/optional-key :git-branch)            s/Str
+   (s/optional-key :build-tool)            s/Str
+   (s/optional-key :ports)                 [s/Int]})
 
 (def ServiceArgs
   {s/Keyword s/Any})

@@ -1,15 +1,18 @@
 (ns soil.logic.services
-  (:require [schema.core :as s]))
+  (:require [schema.core :as s]
+            [soil.components.kubernetes.schema.deployment :as k8s-schema-deploy]))
 
-(s/defn config->deployment
-  [service-configuration namespace]
+(s/defn config->deployment :- k8s-schema-deploy/Deployment
+  [service-configuration namespace :- s/Str]
   {:apiVersion "apps/v1"
    :kind       "Deployment"
    :metadata   {:name      (:name service-configuration)
                 :namespace namespace}
    :spec       {:selector {:matchLabels {:app (:name service-configuration)}}
                 :replicas (or (:replicas service-configuration) 1)
-                :template {:metadata {:labels {:app (:name service-configuration)}}
+                :template {:metadata {:name      (:name service-configuration)
+                                      :namespace namespace
+                                      :labels    {:app (:name service-configuration)}}
                            :spec     {:containers [{:name         (:name service-configuration)
                                                     :image        (or (:image service-configuration)
                                                                       (str "formicarium/joker-" (:build-tool service-configuration) ":0.0.10"))
@@ -18,7 +21,7 @@
                                                                          {:name          "syncthing-file"
                                                                           :containerPort 22000}] (map (fn [port] {:name          (str "svc-port-" port)
                                                                                                                   :containerPort port}) (:ports service-configuration)))
-                                                    :env          (map (fn [[k v]] {:name k :value v}) (:environment-variables service-configuration))
+                                                    :env          (map (fn [[k v]] {:name (name k) :value v}) (:environment-variables service-configuration))
                                                     :volumeMounts [{:name      "git-creds"
                                                                     :mountPath "/mnt/git-credentials"}]}]
                                       :volumes    [{:name   "git-creds"
