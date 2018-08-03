@@ -78,11 +78,20 @@
                                  (vec))
                   :selector {:app service-name}}}))
 
+
+(defn config->tcp-services
+  [{:keys [ports name]} namespace]
+  (->> ports
+       (filter #(= (:type %) "tcp"))
+       (map (fn [{:keys [port]}] (str namespace "/" name ":" port)))
+       (vec)))
+
 (defn config->kubernetes
   [service-configuration namespace domain]
-  {:deployment (config->deployment service-configuration namespace)
-   :ingress    (config->ingress service-configuration namespace domain)
-   :service    (config->service service-configuration namespace)})
+  {:deployment   (config->deployment service-configuration namespace)
+   :ingress      (config->ingress service-configuration namespace domain)
+   :service      (config->service service-configuration namespace)
+   :tcp-services (config->tcp-services service-configuration namespace)})
 
 (s/defn gen-hive-deployment
   [devspace :- s/Str
@@ -145,11 +154,16 @@
                                         (calc-host "hive" "tracing" namespace domain)]
                            :secretName "hive-certificate"}]}}))
 
+(defn gen-hive-tcp-service
+  [namespace]
+  [(str namespace "/hive:2222")])
+
 (defn hive->kubernetes
   [namespace config]
   {:deployment (gen-hive-deployment namespace config)
    :ingress    (gen-hive-ingress namespace config)
-   :service    (gen-hive-service namespace)})
+   :service    (gen-hive-service namespace)
+   :tcp-services (gen-hive-tcp-service namespace)})
 
 (defn build-response
   [k8s-resp]
