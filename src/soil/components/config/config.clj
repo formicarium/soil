@@ -11,7 +11,8 @@
   component/Lifecycle
   (start [this]
     (assoc this :config (cfg/load-config (.getPath (io/resource (str (name (:env this)) ".conf"))))))
-  (stop [this] (dissoc this :config)))
+  (stop [this]
+    (dissoc this :config)))
 
 (defn new-config [env]
   (map->Config {:env env}))

@@ -23,13 +23,6 @@
   (int/interceptor {:name  ::json-body
                     :leave (partial context-fn-json :response)}))
 
-(defn inject-components-on-request
-  [components-map]
-  {:name  ::inject-components-on-request
-   :enter (fn [context]
-            (assoc-in context [:request :components] components-map))})
-
-
 (defn create-interceptor
   [components-map]
   (int-helpers/on-request ::inject-components
