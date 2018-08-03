@@ -4,6 +4,7 @@
             [cheshire.core :as cheshire]
             [soil.controllers.devspaces :as c-env]
             [soil.controllers.services :as c-svc]
+            [soil.components.api.soil-api :as soil-api]
             [io.pedestal.interceptor.helpers :as int-helpers]))
 
 (def externalize-json (int-helpers/on-response ::json-response
@@ -34,10 +35,12 @@
                             (assoc request :components components))))
 
 (defn create-devspace
-  [request]
+  [{{:keys [config k8s-client]} :components, json-params :json-params}]
   {:status  200
    :headers {}
-   :body    (c-env/create-devspace (:json-params request) (get-in request [:components :k8s-client]))})
+   :body    (c-env/create-devspace json-params
+                                   config
+                                   k8s-client)})
 
 (defn delete-devspace
   [request]
@@ -52,7 +55,8 @@
    :body    (c-svc/deploy-service! (:json-params request)
                                    (or (get-in request [:headers "formicarium-devspace"]) "default")
                                    (get-in request [:components :k8s-client])
-                                   (get-in request [:components :configserver]))})
+                                   (get-in request [:components :configserver])
+                                   (get-in request [:components :config]))})
 
 (defn destroy-service
   [request]
