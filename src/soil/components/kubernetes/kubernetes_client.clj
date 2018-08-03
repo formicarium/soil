@@ -11,7 +11,30 @@
             [kubernetes.api.v1 :as k8s]))
 
 (def KubernetesContext {:server s/Str})
+(def ctx (k8s/make-context "http://localhost:9000"))
 
+#_(defn patch-config-map-impl
+  [external-port namespace service service-port]
+  (<!! (k8s/patch-namespaced-config-map ctx
+                                        {:data {external-port (str namespace "/" service ":" service-port)}}
+                                        {:name      "my-nginx-nginx-ingress-tcp"
+                                         :namespace "default"})))
+(s/defn get-config-map-impl
+  [ctx :- KubernetesContext
+   name :- s/Str
+   namespace :- s/Str]
+  (<!! (k8s/read-namespaced-config-map ctx {:name      name
+                                            :namespace namespace})))
+(s/defn patch-config-map-impl
+  [ctx :- KubernetesContext
+   name :- s/Str
+   namespace :- s/Str
+   config-map]
+  (prn config-map)
+  (<!! (k8s/patch-namespaced-config-map ctx
+                                        config-map
+                                        {:name      name
+                                         :namespace namespace})))
 
 (s/defn create-namespace-impl
   [ctx :- KubernetesContext
@@ -106,6 +129,13 @@
         (raise-errors!)))
   (delete-deployment [this deployment-name namespace]
     (-> (delete-deployment-impl (:ctx this) deployment-name namespace)
+        (raise-errors!)))
+
+  (get-config-map [this name namespace]
+    (-> (get-config-map-impl (:ctx this) name namespace)
+        (raise-errors!)))
+  (patch-config-map [this name namespace config-map]
+    (-> (patch-config-map-impl (:ctx this) name namespace config-map)
         (raise-errors!)))
 
   component/Lifecycle
