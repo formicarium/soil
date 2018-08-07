@@ -9,7 +9,7 @@
   (get-config [this path] (get-in (:config this) path))
   component/Lifecycle
   (start [this]
-    (assoc this :config (slurp (io/resource (str (name (:env this)) ".edn")))))
+    (assoc this :config (aero/read-config (io/resource (str (name (:env this)) ".edn")))))
   (stop [this]
     (dissoc this :config)))
 
