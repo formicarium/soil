@@ -19,7 +19,7 @@
                                         :labels    {:app service-name}}
                              :spec     {:containers [{:name  service-name
                                                       :image (or (:image service-configuration)
-                                                                 (str "formicarium/chamber-" (:build-tool service-configuration) ":0.0.1"))
+                                                                 (str "formicarium/chamber-" (:build-tool service-configuration) ":0.0.2"))
                                                       :ports (into [{:name          "stinger-api"
                                                                      :containerPort 24000}] (map (fn [port] {:name          (:name port)
                                                                                                              :containerPort (:port port)})
