@@ -14,7 +14,7 @@
             [clojure.java.io :as io])
   (:use org.httpkit.fake))
 
-(def test-config (cfg/load-config (.getPath (io/resource "test.conf"))))
+(def test-config (cfg/load-config (.getPath (io/resource "test.edn"))))
 (def kubernetes-proxy-url (get-in test-config [:kubernetes :proxy :url]))
 (def configserver-url (get-in test-config [:configserver :url]))
 

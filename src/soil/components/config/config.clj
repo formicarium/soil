@@ -1,16 +1,15 @@
 (ns soil.components.config.config
   (:require [com.stuartsierra.component :as component]
             [soil.protocols.config.config :as p-cfg]
-            [schema.core :as s]
-            [clojure.java.io :as io]
-            [beamly-core.config :as cfg]))
+            [aero.core :as aero]
+            [clojure.java.io :as io]))
 
 (defrecord Config []
   p-cfg/Config
   (get-config [this path] (get-in (:config this) path))
   component/Lifecycle
   (start [this]
-    (assoc this :config (cfg/load-config (.getPath (io/resource (str (name (:env this)) ".conf"))))))
+    (assoc this :config (slurp (io/resource (str (name (:env this)) ".edn")))))
   (stop [this]
     (dissoc this :config)))
 
