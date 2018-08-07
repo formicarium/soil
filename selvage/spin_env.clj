@@ -13,7 +13,6 @@
             [beamly-core.config :as cfg]
             [clojure.java.io :as io])
   (:use org.httpkit.fake))
-
 #_(def test-config (cfg/load-config (.getPath (io/resource "test.conf"))))
 #_(def kubernetes-proxy-url (get-in test-config [:kubernetes :proxy :url]))
 #_(def configserver-url (get-in test-config [:configserver :url]))
