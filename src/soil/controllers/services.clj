@@ -31,7 +31,6 @@
                                                      (p-cs/on-deploy-service config-server)
                                                      (to-kubernetes-resources devspace config))
                                                 k8s-client)]
-    (notify-hive devspace (:name service-args))
     resources))
 
 (defn destroy-service!
