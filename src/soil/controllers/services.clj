@@ -3,7 +3,9 @@
             [soil.protocols.configserver.configserver-client :as p-cs]
             [soil.protocols.config.config :as cfg]
             [soil.diplomat.kubernetes :as d-k8s]
-            [soil.logic.services :as l-svc]))
+            [soil.diplomat.hive :as hive]
+            [soil.logic.services :as l-svc]
+            [io.pedestal.log :as log]))
 
 (defn create-kubernetes-resources!
   [{:keys [deployment ingress service tcp-services]} k8s-client]
@@ -12,13 +14,25 @@
    :ingress      (get-in (p-k8s/create-ingress k8s-client ingress) [:metadata :name])
    :tcp-services (:data (d-k8s/add-tcp-ports tcp-services nil k8s-client))})
 
+(defn to-kubernetes-resources [devspace config svc-config]
+  (l-svc/config->kubernetes svc-config devspace (cfg/get-config config [:formicarium :domain])))
+
+(defn notify-hive
+  [devspace service-name]
+  (try
+    (hive/notify-service-deployed devspace service-name)
+    (catch Exception e
+      (log/error :exception e)
+      nil)))
+
 (defn deploy-service!
   [service-args devspace k8s-client config-server config]
-  (create-kubernetes-resources! (->> service-args
-                                     (p-cs/on-deploy-service config-server)
-                                     ((fn [svc-config] (l-svc/config->kubernetes svc-config devspace
-                                                                                 (cfg/get-config config [:formicarium :domain])))))
-                                k8s-client))
+  (let [resources (create-kubernetes-resources! (->> service-args
+                                                     (p-cs/on-deploy-service config-server)
+                                                     (to-kubernetes-resources devspace config))
+                                                k8s-client)]
+    (notify-hive devspace (:name service-args))
+    resources))
 
 (defn destroy-service!
   [service-name devspace k8s-client]

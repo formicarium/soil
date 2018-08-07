@@ -19,6 +19,7 @@
                  [prismatic/schema "1.1.9"]
                  [clj-http "3.9.0"]
                  [http-kit "2.3.0"]
+                 [cheshire "5.8.0"]
                  [me.raynes/conch "0.8.0"]
                  [beamly/beamly-core.config "0.1.1"]]
   :min-lein-version "2.0.0"
