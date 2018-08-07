@@ -17,19 +17,26 @@
                   :template {:metadata {:name      service-name
                                         :namespace namespace
                                         :labels    {:app service-name}}
-                             :spec     {:containers [{:name         service-name
-                                                      :image        (or (:image service-configuration)
-                                                                        (str "formicarium/joker-" (:build-tool service-configuration) ":0.0.10"))
-                                                      :ports        (into [{:name          "syncthing-api"
-                                                                            :containerPort 24000}
-                                                                           {:name          "syncthing-file"
-                                                                            :containerPort 22000}] (map (fn [port] {:name          (:name port)
-                                                                                                                    :containerPort (:port port)}) (:ports service-configuration)))
-                                                      :env          (map (fn [[k v]] {:name (name k) :value v}) (:environment-variables service-configuration))
-                                                      :volumeMounts [{:name      "git-creds"
-                                                                      :mountPath "/mnt/git-credentials"}]}]
-                                        :volumes    [{:name   "git-creds"
-                                                      :secret {:secretName "git-credentials"}}]}}}}))
+                             :spec     {:containers [{:name  service-name
+                                                      :image (or (:image service-configuration)
+                                                                 (str "formicarium/chamber-" (:build-tool service-configuration) ":0.0.1"))
+                                                      :ports (into [{:name          "stinger-api"
+                                                                     :containerPort 24000}] (map (fn [port] {:name          (:name port)
+                                                                                                             :containerPort (:port port)})
+                                                                                                 (:ports service-configuration)))
+                                                      :env   (concat
+                                                               [{:name  "STARTUP_CLONE"
+                                                                 :value "true"}
+                                                                {:name  "STINGER_PORT"
+                                                                 :value "24000"}
+                                                                {:name  "APP_PATH"
+                                                                 :value "/app"}
+                                                                {:name  "STINGER_SCRIPTS"
+                                                                 :value "/scripts"}
+                                                                {:name  "GIT_URI"
+                                                                 :value (str "http://git." namespace ".cluster.host/" service-name)}]
+                                                               (mapv (fn [[k v]] {:name (name k) :value v})
+                                                                     (:environment-variables service-configuration)))}]}}}}))
 
 (defn calc-host
   [hostname port-name namespace domain]
@@ -39,8 +46,8 @@
   [service-configuration :- cfg-server/ServiceConfiguration
    namespace :- s/Str
    domain :- s/Str]
-  (let [syncthing-ports [{:port 24000 :name "syncthing-api"}, {:port 22000 :name "syncthing-file"}]
-        ports (concat (:ports service-configuration) syncthing-ports)
+  (let [stinger-ports [{:port 24000 :name "stinger-api"}]
+        ports (concat (:ports service-configuration) stinger-ports)
         service-name (:name service-configuration)
         hostname (or service-name (:host service-configuration))]
     {:apiVersion "extensions/v1beta1"
@@ -50,32 +57,31 @@
                   :labels      {:app service-name}
                   :namespace   namespace}
      :spec       {:rules (->> ports
-                              (map (fn [{:keys [name]}] {:host (calc-host hostname name namespace domain)
-                                                         :http {:paths [{:backend {:serviceName service-name
-                                                                                   :servicePort name}
-                                                                         :path    "/"}]}}))
-                              (vec))
+                              (mapv (fn [{:keys [name]}] {:host (calc-host hostname name namespace domain)
+                                                          :http {:paths [{:backend {:serviceName service-name
+                                                                                    :servicePort name}
+                                                                          :path    "/"}]}})))
                   :tls   [{:hosts      (vec (map (fn [{:keys [name]}] (calc-host hostname name namespace domain)) ports))
                            :secretName (str service-name "-certificate")}]}}))
 
 (defn config->service
   [service-configuration namespace]
-  (let [syncthing-ports [{:port 24000 :name "syncthing-api"}, {:port 22000 :name "syncthing-file"}]
-        ports (concat (:ports service-configuration) syncthing-ports)
-        service-name (:name service-configuration)]
+  (let [service-name (:name service-configuration)
+        stinger-ports [{:port 24000 :name (str service-name "-stinger")}]
+        ports (concat (:ports service-configuration) stinger-ports)]
     {:apiVersion "v1"
      :kind       "Service"
      :metadata   {:name      service-name
                   :labels    {:app service-name}
                   :namespace namespace}
      :spec       {:ports    (->> ports
-                                 (map (fn [{:keys [name port]}] {:protocol   "TCP"
-                                                                 :name       name
-                                                                 :port       (if (= name "default")
-                                                                               80
-                                                                               port)
-                                                                 :targetPort name}))
-                                 (vec))
+                                 (mapv (fn [{:keys [name port]}] {:protocol   "TCP"
+                                                                  :name       name
+                                                                  :port       (if (or (= name "default")
+                                                                                      (= port 24000))
+                                                                                80
+                                                                                port)
+                                                                  :targetPort name})))
                   :selector {:app service-name}}}))
 
 
@@ -160,9 +166,9 @@
 
 (defn hive->kubernetes
   [namespace config]
-  {:deployment (gen-hive-deployment namespace config)
-   :ingress    (gen-hive-ingress namespace config)
-   :service    (gen-hive-service namespace)
+  {:deployment   (gen-hive-deployment namespace config)
+   :ingress      (gen-hive-ingress namespace config)
+   :service      (gen-hive-service namespace)
    :tcp-services (gen-hive-tcp-service namespace)})
 
 (defn build-response
@@ -173,3 +179,57 @@
        :namespace         namespace})
     {:success      false
      :k8s-response k8s-resp}))
+
+(defn gen-tanajura-deployment [devspace config]
+  {:apiVersion "apps/v1"
+   :kind       "Deployment"
+   :metadata   {:name      "tanajura"
+                :namespace devspace}
+   :spec       {:selector {:matchLabels {:app "tanajura"}}
+                :replicas 1
+                :template {:metadata {:labels {:app "tanajura"}}
+                           :spec     {:containers [{:name  "hive"
+                                                    :image (str "formicarium/tanajura:" (p-cfg/get-config config [:tanajura :version]))
+                                                    :ports [{:name          "tanajura-api"
+                                                             :containerPort 3002}
+                                                            {:name          "tanajura-git"
+                                                             :containerPort 6666}]}]}}}})
+
+(defn gen-tanajura-ingress [devspace config]
+  (let [domain (p-cfg/get-config config [:formicarium :domain])]
+    {:apiVersion "extensions/v1beta1"
+     :kind       "Ingress"
+     :metadata   {:name        "tanajura"
+                  :annotations {"kubernetes.io/ingress.class" "nginx"}
+                  :labels      {:app "tanajura"}
+                  :namespace   devspace}
+     :spec       {:rules [{:host (clojure.string/join "." ["git" devspace domain])
+                           :http {:paths [{:backend {:serviceName "tanajura"
+                                                     :servicePort "tanajura-git"}
+                                           :path    "/"}]}}
+                          {:host (calc-host "tanajura" "default" devspace domain)
+                           :http {:paths [{:backend {:serviceName "tanajura"
+                                                     :servicePort "tanajura-api"}
+                                           :path    "/"}]}}]}}))
+
+(defn gen-tanajura-service [devspace]
+  {:apiVersion "v1"
+   :kind       "Service"
+   :metadata   {:name      "tanajura"
+                :labels    {:app "tanajura"}
+                :namespace devspace}
+   :spec       {:ports    [{:protocol   "TCP"
+                            :name       "tanajura-api"
+                            :port       80
+                            :targetPort "tanajura-api"}
+                           {:protocol   "TCP"
+                            :name       "tanajura-git"
+                            :port       6666
+                            :targetPort "tanajura-git"}]
+                :selector {:app "tanajura"}}})
+
+(defn tanajura->kubernetes [namespace config]
+  {:deployment   (gen-tanajura-deployment namespace config)
+   :ingress      (gen-tanajura-ingress namespace config)
+   :service      (gen-tanajura-service namespace)
+   :tcp-services []})

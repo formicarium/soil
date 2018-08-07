@@ -12,6 +12,8 @@
     (merge {:namespace (-> (p-k8s/create-namespace k8s-client namespace {:kind config/fmc-devspace-label})
                            l-env/namespace->devspace)}
            (c-svc/create-kubernetes-resources! (l-svc/hive->kubernetes namespace config)
+                                               k8s-client)
+           (c-svc/create-kubernetes-resources! (l-svc/tanajura->kubernetes namespace config)
                                                k8s-client))))
 
 (defn list-devspaces
