@@ -16,10 +16,30 @@
            (c-svc/create-kubernetes-resources! (l-svc/tanajura->kubernetes namespace config)
                                                k8s-client))))
 
+(def hive-host-template "http://hive.{{devspace}}.formicarium.host")
+(def tanajura-host-template "http://tanajura.{{devspace}}.formicarium.host")
+(def tanajura-git-host-template "http://git.{{devspace}}.formicarium.host")
+
+(defn hive-host [devspace]
+  (clojure.string/replace hive-host-template #"\{\{(.*)\}\}" devspace))
+
+(defn tanajura-host [devspace]
+  (clojure.string/replace tanajura-host-template #"\{\{(.*)\}\}" devspace))
+
+(defn tanajura-git-host [devspace]
+  (clojure.string/replace tanajura-git-host-template #"\{\{(.*)\}\}" devspace))
+
 (defn list-devspaces
   [k8s-client]
-  (->> (p-k8s/list-namespaces k8s-client)
-       l-env/namespaces->devspaces))
+  (let [devspaces (->> (p-k8s/list-namespaces k8s-client)
+                       l-env/namespaces->devspaces)
+        devspaces-names (map :name devspaces)]
+    (->> devspaces
+         (reduce (fn [acc {:keys [name]}] (conj acc name)) [])
+         (map (juxt hive-host tanajura-host tanajura-git-host))
+         (map #(zipmap [:hiveUrl :tanajuraApiUrl :tanajuraGitUrl] %))
+         (map (fn [devspace url] {devspace url}) devspaces-names)
+         (reduce merge))))
 
 (defn delete-devspace
   [devspace k8s-client]

@@ -20,7 +20,7 @@
   [request]
   {:status  200
    :headers {}
-   :body    {:devspaces (c-env/list-devspaces (get-in request [:components :k8s-client]))}})
+   :body    (c-env/list-devspaces (get-in request [:components :k8s-client]))})
 
 (defn get-health
   [request]
