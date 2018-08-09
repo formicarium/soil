@@ -10,7 +10,7 @@
 (defn create-kubernetes-resources!
   [{:keys [deployment ingress service tcp-services]} k8s-client]
   {:deployment   (get-in (p-k8s/create-deployment k8s-client deployment) [:metadata :name])
-   :service      (get-in (p-k8s/create-service k8s-client service) [:metadata :name])
+   :service      (map (fn [svc] (get-in (p-k8s/create-service k8s-client svc) [:metadata :name])) service)
    :ingress      (get-in (p-k8s/create-ingress k8s-client ingress) [:metadata :name])
    :tcp-services (:data (d-k8s/add-tcp-ports tcp-services nil k8s-client))})
 

@@ -32,13 +32,13 @@
    (s/optional-key :generation)                 (s/maybe s/Int),
    (s/optional-key :creationTimestamp)          Time,
    (s/optional-key :uid)                        s/Str,
-   :name                                        s/Str,
+   (s/optional-key :name)                       s/Str,
    (s/optional-key :resourceVersion)            s/Str,
    (s/optional-key :selfLink)                   s/Str,
    (s/optional-key :deletionTimestamp)          Time,
    (s/optional-key :deletionGracePeriodSeconds) s/Int,
    (s/optional-key :annotations)                {s/Str s/Str},
-   :namespace                                   s/Str,
+   (s/optional-key :namespace)                  s/Str,
    (s/optional-key :generateName)               s/Str})
 
 (def LabelOperator

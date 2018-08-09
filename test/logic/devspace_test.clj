@@ -2,7 +2,7 @@
   (:require [midje.sweet :refer :all]
             [soil.logic.devspace :as l-env]))
 
-#_(fact "Should be able to transform a kubernetes's namespace on a formicarium's devspace"
+(fact "Should be able to transform a kubernetes's namespace on a formicarium's devspace"
   (l-env/namespace->devspace {:apiVersion "v1"
                               :kind       "Namespace"
                               :metadata   {:creationTimestamp "2018-07-03T04:54:49Z"

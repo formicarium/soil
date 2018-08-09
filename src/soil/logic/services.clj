@@ -35,7 +35,7 @@
                                                                 {:name  "STINGER_SCRIPTS"
                                                                  :value "/scripts"}
                                                                 {:name  "GIT_URI"
-                                                                 :value (str "http://git." namespace ".cluster.host/" service-name)}]
+                                                                 :value (str "http://git." namespace ".cluster.local/" service-name)}]
                                                                (mapv (fn [[k v]] {:name (name k) :value v})
                                                                      (:environment-variables service-configuration)))}]}}}}))
 
@@ -96,7 +96,7 @@
   [service-configuration namespace domain]
   {:deployment   (config->deployment service-configuration namespace)
    :ingress      (config->ingress service-configuration namespace domain)
-   :service      (config->service service-configuration namespace)
+   :service      [(config->service service-configuration namespace)]
    :tcp-services (config->tcp-services service-configuration namespace)})
 
 (s/defn gen-hive-deployment
@@ -168,7 +168,7 @@
   [namespace config]
   {:deployment   (gen-hive-deployment namespace config)
    :ingress      (gen-hive-ingress namespace config)
-   :service      (gen-hive-service namespace)
+   :service      [(gen-hive-service namespace)]
    :tcp-services (gen-hive-tcp-service namespace)})
 
 (defn build-response
@@ -212,17 +212,25 @@
                                                      :servicePort "tanajura-api"}
                                            :path    "/"}]}}]}}))
 
-(defn gen-tanajura-service [devspace]
+(defn gen-tanajura-api-service [devspace]
   {:apiVersion "v1"
    :kind       "Service"
-   :metadata   {:name      "tanajura"
+   :metadata   {:name      "tanajura-api"
                 :labels    {:app "tanajura"}
                 :namespace devspace}
    :spec       {:ports    [{:protocol   "TCP"
                             :name       "tanajura-api"
                             :port       80
-                            :targetPort "tanajura-api"}
-                           {:protocol   "TCP"
+                            :targetPort "tanajura-api"}]
+                :selector {:app "tanajura"}}})
+
+(defn gen-tanajura-git-service [devspace]
+  {:apiVersion "v1"
+   :kind       "Service"
+   :metadata   {:name      "tanajura-git"
+                :labels    {:app "tanajura"}
+                :namespace devspace}
+   :spec       {:ports    [{:protocol   "TCP"
                             :name       "tanajura-git"
                             :port       6666
                             :targetPort "tanajura-git"}]
@@ -231,5 +239,5 @@
 (defn tanajura->kubernetes [namespace config]
   {:deployment   (gen-tanajura-deployment namespace config)
    :ingress      (gen-tanajura-ingress namespace config)
-   :service      (gen-tanajura-service namespace)
+   :service      [(gen-tanajura-api-service namespace) (gen-tanajura-git-service namespace)]
    :tcp-services []})
