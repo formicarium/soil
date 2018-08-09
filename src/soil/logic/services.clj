@@ -35,7 +35,7 @@
                                                                 {:name  "STINGER_SCRIPTS"
                                                                  :value "/scripts"}
                                                                 {:name  "GIT_URI"
-                                                                 :value (str "http://git." namespace ".cluster.local/" service-name)}]
+                                                                 :value (str "http://tanajura-git/" service-name ".git")}]
                                                                (mapv (fn [[k v]] {:name (name k) :value v})
                                                                      (:environment-variables service-configuration)))}]}}}}))
 
@@ -204,11 +204,11 @@
                   :labels      {:app "tanajura"}
                   :namespace   devspace}
      :spec       {:rules [{:host (clojure.string/join "." ["git" devspace domain])
-                           :http {:paths [{:backend {:serviceName "tanajura"
+                           :http {:paths [{:backend {:serviceName "tanajura-git"
                                                      :servicePort "tanajura-git"}
                                            :path    "/"}]}}
                           {:host (calc-host "tanajura" "default" devspace domain)
-                           :http {:paths [{:backend {:serviceName "tanajura"
+                           :http {:paths [{:backend {:serviceName "tanajura-api"
                                                      :servicePort "tanajura-api"}
                                            :path    "/"}]}}]}}))
 
@@ -232,7 +232,7 @@
                 :namespace devspace}
    :spec       {:ports    [{:protocol   "TCP"
                             :name       "tanajura-git"
-                            :port       6666
+                            :port       80
                             :targetPort "tanajura-git"}]
                 :selector {:app "tanajura"}}})
 
