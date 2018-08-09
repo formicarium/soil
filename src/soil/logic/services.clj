@@ -19,8 +19,8 @@
                                         :labels    {:app service-name}}
                              :spec     {:containers [{:name  service-name
                                                       :image (or (:image service-configuration)
-                                                                 (str "formicarium/chamber-" (:build-tool service-configuration) ":0.0.2"))
-                                                      :ports (concat [{:name          "stinger-api"
+                                                                 (str "formicarium/chamber-" (:build-tool service-configuration) ":latest"))
+                                                      :ports (concat [{:name          "stinger"
                                                                        :containerPort 24000}]
                                                                      (mapv (fn [port] {:name          (:name port)
                                                                                        :containerPort (:port port)})
@@ -43,11 +43,17 @@
   [hostname port-name namespace domain]
   (clojure.string/join "." [(str hostname (when-not (= port-name "default") (str "-" port-name))) namespace domain]))
 
+(defn get-port-for-service
+  [{:keys [name port]}]
+  (if (= name "default")
+    80
+    port))
+
 (s/defn config->ingress
   [service-configuration :- cfg-server/ServiceConfiguration
    namespace :- s/Str
    domain :- s/Str]
-  (let [stinger-ports [{:port 24000 :name "stinger-api"}]
+  (let [stinger-ports [{:port 24000 :name "stinger"}]
         ports (concat (:ports service-configuration) stinger-ports)
         service-name (:name service-configuration)
         hostname (or service-name (:host service-configuration))]
@@ -59,30 +65,31 @@
                   :namespace   namespace}
      :spec       {:rules (->> ports
                               (mapv (fn [{:keys [name]}] {:host (calc-host hostname name namespace domain)
-                                                          :http {:paths [{:backend {:serviceName service-name
+                                                          :http {:paths [{:backend {:serviceName (str service-name "-" name)
                                                                                     :servicePort name}
                                                                           :path    "/"}]}})))
                   :tls   [{:hosts      (vec (map (fn [{:keys [name]}] (calc-host hostname name namespace domain)) ports))
                            :secretName (str service-name "-certificate")}]}}))
 
-(defn config->service
+(defn port->service
+  [{:keys [name] :as port-description} service-name namespace]
+  {:apiVersion "v1"
+   :kind       "Service"
+   :metadata   {:name      (str service-name "-" name)
+                :labels    {:app service-name}
+                :namespace namespace}
+   :spec       {:ports    [{:protocol   "TCP"
+                            :name       name
+                            :port       80
+                            :targetPort name}]
+                :selector {:app service-name}}})
+
+(defn config->services
   [service-configuration namespace]
   (let [service-name (:name service-configuration)
-        stinger-ports [{:port 24000 :name (str service-name "-stinger")}]
+        stinger-ports [{:port 24000 :name "stinger"}]
         ports (concat (:ports service-configuration) stinger-ports)]
-    {:apiVersion "v1"
-     :kind       "Service"
-     :metadata   {:name      service-name
-                  :labels    {:app service-name}
-                  :namespace namespace}
-     :spec       {:ports    (->> ports
-                                 (mapv (fn [{:keys [name port]}] {:protocol   "TCP"
-                                                                  :name       name
-                                                                  :port       (if (= name "default")
-                                                                                80
-                                                                                port)
-                                                                  :targetPort name})))
-                  :selector {:app service-name}}}))
+    (mapv #(port->service % service-name namespace) ports)))
 
 
 (defn config->tcp-services
@@ -96,7 +103,7 @@
   [service-configuration namespace domain]
   {:deployment   (config->deployment service-configuration namespace)
    :ingress      (config->ingress service-configuration namespace domain)
-   :service      [(config->service service-configuration namespace)]
+   :service      (config->services service-configuration namespace)
    :tcp-services (config->tcp-services service-configuration namespace)})
 
 (s/defn gen-hive-deployment
