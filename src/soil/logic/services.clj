@@ -252,11 +252,11 @@
    :tcp-services []})
 
 (defn get-repl-port [devspace-name service-name config-map]
-  (->> config-map
-       :data
-       (filter
-         (fn [[_ service]]
-           (clojure.string/includes? service (str devspace-name "/" service-name))))
-       ffirst
-       name
-       Integer/parseInt))
+  (some->> config-map
+           :data
+           (filter
+             (fn [[_ service]]
+               (clojure.string/includes? service (str devspace-name "/" service-name))))
+           ffirst
+           name
+           Integer/parseInt))

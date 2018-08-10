@@ -24,7 +24,8 @@
   (let [repl-port (->> k8s-client
                        diplomat.kubernetes/get-nginx-tcp-config-map
                        (l-svc/get-repl-port devspace "hive"))]
-    (str "nrepl://hive." devspace "." domain ":" repl-port)))
+    (when repl-port
+      (str "nrepl://hive." devspace "." domain ":" repl-port))))
 
 (defn tanajura-api-url [domain devspace]
   (str "http://tanajura." devspace "." domain))
