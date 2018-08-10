@@ -75,7 +75,7 @@
                              :container-port targetPort}) ports)})
 
 (s/defn externalize-ingress-rule
-  [{:keys [host path service-name service-port]}]
+  [{:rule/keys [host path service-name service-port]} :- models.k8s/IngressRule]
   {:host host
    :http {:paths [{:backend {:serviceName service-name
                              :servicePort service-port}
@@ -91,7 +91,7 @@
             :service-port (-> backend :servicePort)}))
 
 (s/defn externalize-ingress
-  [{:keys [name namespace rules]} :- models.k8s/Ingress]
+  [{:ingress/keys [name namespace rules]} :- models.k8s/Ingress]
   {:apiVersion "extensions/v1beta1"
    :kind       "Ingress"
    :metadata   {:name        name

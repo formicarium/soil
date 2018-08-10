@@ -9,10 +9,10 @@
                                     :env   [{:name  s/Str
                                              :value s/Str}]})
 
-(s/defschema Deployment #:deployment {:name                      s/Str
-                                      :namespace                 s/Str
-                                      (s/optional-key :replicas) s/Int
-                                      :containers                [Container]})
+(s/defschema Deployment {:deployment/name           s/Str
+                         :deployment/namespace      s/Str
+                         (s/optional-key :deployment/replicas) (s/maybe s/Int)
+                         :deployment/containers     [Container]})
 
 (s/defschema Service #:service {:name      s/Str
                                 :namespace s/Str
@@ -21,7 +21,7 @@
                                              :name           s/Str}]})
 
 (s/defschema IngressRule #:rule {:host         s/Str
-                                 :path         "/"
+                                 :path         s/Str
                                  :service-name s/Str
                                  :service-port (s/either s/Str s/Int)})
 
