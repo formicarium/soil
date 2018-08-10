@@ -1,6 +1,6 @@
-{:configserver {:url "http://config-server"}
+{:configserver {:url "http://config-server.formicarium.host"}
  :kubernetes   {:proxy {:url "http://localhost:9000"}}
  :hive         {:version "1f09933bdde4ac685934b09bd3d34309e965a76c"}
  :tanajura     {:version "1.4.2"}
  :formicarium  {:domain "formicarium.host"}
- :soil         {:version "0.0.3"}}
+ :soil         {:version "0.0.4"}}
