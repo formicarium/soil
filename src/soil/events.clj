@@ -7,3 +7,4 @@
 (s/defn deployment-created [name]
   {:event "DeploymentCreated"
    :data {:name name}})
+

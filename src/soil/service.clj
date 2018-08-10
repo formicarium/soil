@@ -49,14 +49,16 @@
    :body    (c-env/delete-devspace (:json-params request) (get-in request [:components :k8s-client]))})
 
 (defn deploy-service
-  [request]
+  [{{:keys [k8s-client configserver config]} :components
+    body :json-params
+    headers :headers}]
   {:status  200
    :headers {}
-   :body    (c-svc/deploy-service! (:json-params request)
-                                   (or (get-in request [:headers "formicarium-devspace"]) "default")
-                                   (get-in request [:components :k8s-client])
-                                   (get-in request [:components :configserver])
-                                   (get-in request [:components :config]))})
+   :body    (c-svc/deploy-service! body
+                                   (get headers "formicarium-devspace" "default")
+                                   k8s-client
+                                   configserver
+                                   config)})
 
 (defn destroy-service
   [request]

@@ -4,6 +4,7 @@
             [soil.protocols.config.config :as p-cfg]
             [soil.components.kubernetes.schema.deployment :as k8s-schema-deploy]))
 
+
 (s/defn config->deployment :- k8s-schema-deploy/Deployment
   [service-configuration namespace :- s/Str]
   (let [service-name (:name service-configuration)]
