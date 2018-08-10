@@ -72,6 +72,8 @@
                                                              :namespace namespace})))
 
 (defn create-service-impl [ctx service]
+  (log/info "CREATE-SERVICE-IMPL")
+  (log/info service)
   (<!! (k8s/create-namespaced-service ctx service {:namespace (get-in service [:metadata :namespace])})))
 
 (s/defn delete-service-impl
@@ -93,7 +95,8 @@
   (log/info apiserver-response)
   (if (and (= (:kind apiserver-response) "Status")
            (not= (:status apiserver-response) "Success"))
-    (do (log/error apiserver-response) (throw (ex-info "Error from ApiServer" apiserver-response)))
+    (do (log/error apiserver-response)
+        (throw (ex-info "Error from ApiServer" apiserver-response)))
     apiserver-response))
 
 (defrecord KubernetesClient [config]
