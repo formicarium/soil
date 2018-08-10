@@ -39,3 +39,7 @@
                                       (filter (fn [[k v]] (some #(= (second (clojure.string/split v #"[/:]")) %) services)))
                                       (map (fn [[k v]] {k nil}))
                                       (into {}))}))
+
+(defn get-nginx-tcp-config-map
+  [k8s-client]
+  (p-k8s/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace))

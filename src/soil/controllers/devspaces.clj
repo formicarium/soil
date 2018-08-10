@@ -4,6 +4,7 @@
             [soil.logic.devspace :as l-env]
             [soil.logic.services :as l-svc]
             [soil.config :as config]
+            [soil.diplomat.kubernetes :as diplomat.kubernetes]
             [soil.protocols.config.config :as protocol.config]))
 
 (defn create-devspace
@@ -19,8 +20,11 @@
 (defn hive-api-url [domain devspace]
   (str "http://hive." devspace "." domain))
 
-(defn hive-repl-url [domain devspace]
-  (str "http://repl-hive." devspace "." domain ":" "smar-port"))
+(defn hive-repl-url [domain k8s-client devspace]
+  (let [repl-port (->> k8s-client
+                       diplomat.kubernetes/get-nginx-tcp-config-map
+                       (l-svc/get-repl-port devspace "hive"))]
+    (str "http://hive." devspace "." domain ":" repl-port)))
 
 (defn tanajura-api-url [domain devspace]
   (str "http://tanajura." devspace "." domain))
@@ -41,7 +45,7 @@
          (reduce (fn [acc {:keys [name]}] (conj acc name)) [])
          (map (juxt
                 (partial hive-api-url top-level)
-                (partial hive-repl-url top-level)
+                (partial hive-repl-url top-level k8s-client)
                 (partial tanajura-api-url top-level)
                 (partial tanajura-git-url top-level)
                 (partial config-server-url config)))
