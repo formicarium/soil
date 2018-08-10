@@ -29,6 +29,8 @@
                                                       :env   (concat
                                                                [{:name  "STARTUP_CLONE"
                                                                  :value "true"}
+                                                                {:name "START_AFTER_PULL"
+                                                                 :value "true"}
                                                                 {:name  "STINGER_PORT"
                                                                  :value "24000"}
                                                                 {:name  "APP_PATH"

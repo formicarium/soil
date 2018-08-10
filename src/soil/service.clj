@@ -5,6 +5,7 @@
             [soil.controllers.devspaces :as c-env]
             [soil.controllers.services :as c-svc]
             [soil.components.api.soil-api :as soil-api]
+            [soil.protocols.config.config :as protocol.config]
             [io.pedestal.interceptor.helpers :as int-helpers]))
 
 (def externalize-json (int-helpers/on-response ::json-response
@@ -27,6 +28,12 @@
   {:status  200
    :headers {}
    :body    {:healthy true}})
+
+(defn get-version
+  [{{:keys [config]} :components}]
+  {:status  200
+   :headers {}
+   :body    {:version (protocol.config/get-config config [:soil :version])}})
 
 (defn components-on-request-interceptor
   [components]
@@ -72,6 +79,7 @@
   `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
       ["/api"
        ["/health" {:get [:get-health get-health]}]
+       ["/version" {:get [:get-version get-version]}]
        ["/devspaces"
         {:get get-devspaces}
         {:post create-devspace}
