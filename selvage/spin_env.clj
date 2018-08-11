@@ -8,7 +8,7 @@
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.test :refer [response-for]]
-            [soil.service :as service]
+            [soil.routes :as service]
             [soil.components.api.soil-api :as soil-api]
             [aero.core :as aero]
             [beamly-core.config :as cfg]

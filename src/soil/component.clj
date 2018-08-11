@@ -1,6 +1,6 @@
 (ns soil.component
   (:require [com.stuartsierra.component :as component]
-            [soil.service :as service]
+            [soil.routes :as routes]
             [clj-service.components.pedestal :as components.pedestal]
             [clj-service.components.config :as components.config]
             [clj-service.components.webapp :as components.webapp]
@@ -14,7 +14,7 @@
    :k8s-api-server (component/using (components.kubernetes-api-server/new-k8s-api-server) [:config])
    :k8s-client     (component/using (components.kubernetes-client/new-k8s-client) [:config :k8s-api-server])
    :webapp         (component/using (components.webapp/new-webapp) [:config :config-server :k8s-client])
-   :pedestal       (component/using (components.pedestal/new-pedestal #'service/routes) [:config :webapp])})
+   :pedestal       (component/using (components.pedestal/new-pedestal #'routes/routes) [:config :webapp])})
 
 (defn test-system [env]
   (merge

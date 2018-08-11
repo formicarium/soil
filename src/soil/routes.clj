@@ -1,4 +1,4 @@
-(ns soil.service
+(ns soil.routes
   (:require [io.pedestal.http.body-params :as body-params]
             [soil.controllers.devspaces :as controllers.devspace]
             [soil.controllers.services :as controllers.service]

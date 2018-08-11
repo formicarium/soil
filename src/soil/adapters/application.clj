@@ -37,7 +37,7 @@
           {:name  (:container/name container)
            :image (:container/image container)
            :ports (application+container->ports application container)
-           :env   (mapv #(do {:name  (clojure.core/name (key %))
+           :env   (mapv #(do {:name  (name (key %))
                               :value (str (val %))}) (:container/env container))}) containers))
 
 (s/defn application->deployment :- (s/pred map?)
