@@ -7,7 +7,7 @@
             [soil.protocols.config.config :as p-cfg]))
 
 #_(fact "Create devspace"
-      (c-env/create-devspace {:name ..env-name..} ..config.. ..k8s-client..) => ..env-created..
+      (c-env/create-devspace! {:name ..env-name..} ..config.. ..k8s-client..) => ..env-created..
       (provided
         (p-k8s/create-namespace ..k8s-client.. ..env-name.. {:kind config/fmc-devspace-label}) => ..namespace..
         (p-k8s/create-deployment ..  )

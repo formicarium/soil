@@ -1,7 +1,7 @@
 (ns soil.protocols.kubernetes-client)
 
 (defprotocol KubernetesClient
-  (create-namespace! [this namespace] [this namespace labels] "Creates a Kubernetes namespace")
+  (create-namespace! [this k8s-namespace]                     "Creates a Kubernetes namespace")
   (list-namespaces [this]                                     "List Kubernetes namespaces")
   (delete-namespace! [this namespace-name]                    "Deletes a Kubernetes namespace")
 

@@ -2,7 +2,8 @@
   (:require [schema.core :as s]
             [soil.components.config-server-client :as protocols.config-server-client]
             [soil.components.kubernetes.schema.deployment :as k8s-schema-deploy]
-            [clj-service.protocols.config :as protocols.config]))
+            [clj-service.protocols.config :as protocols.config]
+            [soil.logic.interface :as logic.interface]))
 
 
 (s/defn config->deployment :- k8s-schema-deploy/Deployment

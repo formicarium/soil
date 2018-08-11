@@ -34,10 +34,8 @@
 
 (s/defn create-namespace-impl!
   [ctx :- KubernetesContext
-   namespace-name :- s/Str
-   labels :- (s/pred map?)]
-  (<!! (k8s/create-namespace ctx {:metadata {:name   namespace-name
-                                             :labels labels}})))
+   k8s-namespace :- (s/pred map?)]
+  (<!! (k8s/create-namespace ctx k8s-namespace)))
 
 (s/defn delete-namespace-impl!
   [ctx :- KubernetesContext namespace-name :- s/Str]
@@ -92,10 +90,8 @@
 
 (defrecord KubernetesClient [config]
   protocols.kubernetes-client/KubernetesClient
-  (create-namespace! [this namespace]
-    (protocols.kubernetes-client/create-namespace! this namespace {}))
-  (create-namespace! [this namespace labels]
-    (-> (create-namespace-impl! (:ctx this) namespace labels)
+  (create-namespace! [this k8s-namespace]
+    (-> (create-namespace-impl! (:ctx this) k8s-namespace)
         (raise-errors!)))
   (list-namespaces [this]
     (-> (list-namespaces-impl (:ctx this))

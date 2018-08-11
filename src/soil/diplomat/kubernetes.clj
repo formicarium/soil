@@ -1,17 +1,24 @@
 (ns soil.diplomat.kubernetes
-  (:require [soil.protocols.kubernetes-client :as protocols.kuberentes-client]
-            [clojure.set :refer [difference]]))
+  (:require [soil.protocols.kubernetes-client :as protocols.k8s]
+            [soil.adapters.devspace :as adapters.devspace]
+            [clojure.set :refer [difference]]
+            [schema.core :as s]))
 
 (def tcp-ports (map str (range 4000 5000)))
 (def tcp-config-map-name "my-nginx-nginx-ingress-tcp")
 (def tcp-config-map-namespace "default")
 
-(defn tap [any] (prn any) any)
+(s/defn create-namespace! :- s/Str
+  [namespace-name :- s/Str
+   k8s-client :- protocols.k8s/KubernetesClient]
+  (->> (adapters.devspace/devspace-name->create-namespace namespace-name)
+       (protocols.k8s/create-namespace! k8s-client))
+  namespace-name)
 
 (defn get-tcp-available-ports
   [num k8s-client]
   (take num
-    (->> (protocols.kuberentes-client/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace)
+    (->> (protocols.k8s/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace)
          :data
          keys
          (mapv name)
@@ -21,18 +28,19 @@
 (defn add-tcp-ports
   [services _ k8s-client]
   (prn "services" services)
-  (protocols.kuberentes-client/patch-config-map! k8s-client
+  (protocols.k8s/patch-config-map! k8s-client
     tcp-config-map-name
     tcp-config-map-namespace
-    {:data (zipmap (tap (get-tcp-available-ports (count services) k8s-client))
+    {:data (zipmap
+             (get-tcp-available-ports (count services) k8s-client)
              services)}))
 
 (defn delete-tcp-ports
   [services k8s-client]
-  (protocols.kuberentes-client/patch-config-map! k8s-client
+  (protocols.k8s/patch-config-map! k8s-client
     tcp-config-map-name
     tcp-config-map-namespace
-    {:data (->> (protocols.kuberentes-client/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace)
+    {:data (->> (protocols.k8s/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace)
                 :data
                 (filter (fn [[k v]] (some #(= (second (clojure.string/split v #"[/:]")) %) services)))
                 (map (fn [[k v]] {k nil}))
@@ -40,4 +48,4 @@
 
 (defn get-nginx-tcp-config-map
   [k8s-client]
-  (protocols.kuberentes-client/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace))
+  (protocols.k8s/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace))

@@ -3,19 +3,20 @@
             [soil.controllers.services :as controllers.services]
             [soil.logic.devspace :as logic.devspace]
             [soil.logic.services :as logic.service]
-            [soil.config :as config]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]
-            [clj-service.protocols.config :as protocols.config]))
+            [clj-service.protocols.config :as protocols.config]
+            [schema.core :as s]))
 
-(defn create-devspace
-  [devspace config k8s-client]
-  (let [namespace (:name devspace)]
-    (merge {:namespace (-> (protocols.kubernetes-client/create-namespace! k8s-client namespace {:kind config/fmc-devspace-label})
-                           logic.devspace/namespace->devspace)}
-      (controllers.services/create-kubernetes-resources! (logic.service/hive->kubernetes namespace config)
-        k8s-client)
-      (controllers.services/create-kubernetes-resources! (logic.service/tanajura->kubernetes namespace config)
-        k8s-client))))
+(s/defn create-devspace!
+  [devspace-name :- s/Str
+   config :- protocols.config/IConfig
+   k8s-client :- protocols.kubernetes-client/IKubernetesClient]
+  (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
+  (merge
+    (controllers.services/create-kubernetes-resources! (logic.service/hive->kubernetes devspace-name config)
+      k8s-client)
+    (controllers.services/create-kubernetes-resources! (logic.service/tanajura->kubernetes devspace-name config)
+      k8s-client)))
 
 (defn hive-api-url [domain devspace]
   (str "http://hive." devspace "." domain))
