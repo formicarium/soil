@@ -2,17 +2,21 @@
   (:require [schema.core :as s]
             [soil.models.application :as models.application]))
 
-(s/defn calc-host :- s/Str
-  [hostname :- s/Str
-   port-name :- s/Str
-   namespace :- s/Str
-   domain :- s/Str]
-  (clojure.string/join "." [(str hostname (when-not (= (name port-name) "default") (str "-" (name port-name)))) namespace domain]))
+(s/defn is-default? :- s/Bool
+  [n :- (s/either s/Str s/Keyword)]
+  (= (name n) "default"))
 
 (s/defn calc-name :- s/Str
-  [service :- s/Str
-   interface-name :- s/Str]
-  (clojure.string/join "-" [(str service (when-not (= (name interface-name) "default") (str "-" (name interface-name))))]))
+  [service-name :- s/Str
+   interface-name :- (s/either s/Str s/Keyword)]
+  (str service-name (when-not (is-default? interface-name) (str "-" (name interface-name)))))
+
+(s/defn calc-host :- s/Str
+  [service-name :- s/Str
+   interface-name :- s/Str
+   devspace-name :- s/Str
+   domain :- s/Str]
+  (clojure.string/join "." [(calc-name service-name interface-name) devspace-name domain]))
 
 (s/defn new :- models.application/Interface
   [{:keys [name port type devspace container service domain]

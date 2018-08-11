@@ -1,5 +1,5 @@
 (ns soil.controllers.devspaces
-  (:require [soil.protocols.kubernetes-client :as protocols.kubernetes-client]
+  (:require [soil.protocols.kubernetes-client :as protocols.k8s]
             [soil.controllers.services :as controllers.services]
             [soil.logic.devspace :as logic.devspace]
             [soil.logic.services :as logic.service]
@@ -35,7 +35,7 @@
 (s/defn create-devspace!
   [devspace-name :- s/Str
    config :- protocols.config/IConfig
-   k8s-client :- protocols.kubernetes-client/IKubernetesClient]
+   k8s-client :- protocols.k8s/IKubernetesClient]
   (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
   (merge
     (controllers.services/create-kubernetes-resources! (logic.service/hive->kubernetes devspace-name config)
@@ -65,7 +65,7 @@
 (defn list-devspaces
   [k8s-client config]
   (let [top-level       (protocols.config/get-in! config [:formicarium :domain])
-        devspaces       (->> (protocols.kubernetes-client/list-namespaces k8s-client)
+        devspaces       (->> (protocols.k8s/list-namespaces k8s-client)
                              logic.devspace/namespaces->devspaces)
         devspaces-names (map :name devspaces)]
     (->> devspaces
@@ -82,6 +82,6 @@
 
 (defn delete-devspace
   [devspace k8s-client]
-  (do (protocols.kubernetes-client/delete-namespace! k8s-client devspace)
+  (do (protocols.k8s/delete-namespace! k8s-client devspace)
       {:success true}))
 
