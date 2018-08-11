@@ -46,10 +46,10 @@
    :deployment/replicas   1})
 
 (fact "internalize deployment"
-      (adapter.k8s/internalize-deployment external-deployment) => internal-deployment)
+  (adapter.k8s/internalize-deployment external-deployment) => internal-deployment)
 
 (fact "externalize deployment"
-      (adapter.k8s/externalize-deployment internal-deployment) => external-deployment)
+  (adapter.k8s/externalize-deployment internal-deployment) => external-deployment)
 
 (def external-service
   {:apiVersion "v1"
@@ -64,15 +64,15 @@
                 :selector {:app "kratos"}}})
 
 (def internal-service
-  {:service/name "kratos"
+  {:service/name      "kratos"
    :service/namespace "carlos-rodrigues"
-   :service/ports [{:container-port "http" :name "http" :service-port 80}]})
+   :service/ports     [{:container-port "http" :name "http" :service-port 80}]})
 
 (fact "internalize service"
-      (adapter.k8s/internalize-service external-service) => internal-service)
+  (adapter.k8s/internalize-service external-service) => internal-service)
 
 (fact "externalize service"
-      (adapter.k8s/externalize-service internal-service) => external-service)
+  (adapter.k8s/externalize-service internal-service) => external-service)
 
 (def external-ingress
   {:apiVersion "extensions/v1beta1"
@@ -91,20 +91,20 @@
                                          :path    "/"}]}}]}})
 
 (def internal-ingress
-  {:ingress/name "kratos"
+  {:ingress/name      "kratos"
    :ingress/namespace "carlos-rodrigues"
-   :ingress/rules [{:rule/host "kratos-other.carlos-rodrigues.domain.host"
-                    :rule/path "/"
-                    :rule/service-name "kratos-other"
-                    :rule/service-port "kratos-other"}
-                   {:rule/host "kratos.carlos-rodrigues.domain.host"
-                    :rule/path "/"
-                    :rule/service-name "kratos-api"
-                    :rule/service-port "kratos-api"}]})
+   :ingress/rules     [{:rule/host         "kratos-other.carlos-rodrigues.domain.host"
+                        :rule/path         "/"
+                        :rule/service-name "kratos-other"
+                        :rule/service-port "kratos-other"}
+                       {:rule/host         "kratos.carlos-rodrigues.domain.host"
+                        :rule/path         "/"
+                        :rule/service-name "kratos-api"
+                        :rule/service-port "kratos-api"}]})
 
 (fact "internalize ingress"
-      (adapter.k8s/internalize-ingress external-ingress) => internal-ingress)
+  (adapter.k8s/internalize-ingress external-ingress) => internal-ingress)
 
 (fact "externalize ingress"
-      (adapter.k8s/externalize-ingress internal-ingress) => external-ingress)
+  (adapter.k8s/externalize-ingress internal-ingress) => external-ingress)
 

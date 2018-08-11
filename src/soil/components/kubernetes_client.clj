@@ -1,35 +1,18 @@
-(ns soil.components.kubernetes.kubernetes-client
+(ns soil.components.kubernetes-client
   (:require [clojure.core.async :refer [<!!]]
-            [clojure.tools.logging :as log]
             [com.stuartsierra.component :as component]
+            [io.pedestal.log :as log]
             [schema.core :as s]
-            [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
-            [soil.protocols.config.config :as p-cfg]
+            [soil.protocols.kubernetes-client :as protocols.kubernetes-client]
             [soil.components.kubernetes.schema.deployment :as k8s.schema.deployment]
             [kubernetes.api.apps-v1 :as k8s-apps]
             [kubernetes.api.extensions-v1beta1 :as extensions-v1beta1]
-            [kubernetes.api.v1 :as k8s]))
+            [kubernetes.api.v1 :as k8s]
+            [clj-service.exception :as exception]
+            [clj-service.protocols.config :as protocols.config]))
 
 (def KubernetesContext {:server s/Str})
 (def ctx (k8s/make-context "http://localhost:9000"))
-
-#_(defn patch-config-map-impl
-  [external-port namespace service service-port]
-  (<!! (k8s/patch-namespaced-config-map ctx
-                                        {:data {external-port (str namespace "/" service ":" service-port)}}
-                                        {:name      "my-nginx-nginx-ingress-tcp"
-                                         :namespace "default"})))
-
-(def patch
-  {:apiVersion "apps/v1"
-   :kind       "Deployment"
-   :spec       {:template {:spec     {:containers [{:name  "nginx-ingress-controller"
-                                                    :ports [{:name          "4318-tcp"
-                                                             :containerPort 4318}]}]}}}})
-(defn patch-deployment-impl!
-  [ctx name namespace deployment]
-  (<!! (k8s-apps/patch-namespaced-deployment ctx deployment {:name name
-                                                             :namespace namespace})))
 
 (s/defn get-config-map-impl
   [ctx :- KubernetesContext
@@ -45,9 +28,9 @@
    config-map]
   (prn config-map)
   (<!! (k8s/patch-namespaced-config-map ctx
-                                        config-map
-                                        {:name      name
-                                         :namespace namespace})))
+         config-map
+         {:name      name
+          :namespace namespace})))
 
 (s/defn create-namespace-impl!
   [ctx :- KubernetesContext
@@ -71,7 +54,7 @@
   [ctx :- KubernetesContext
    deployment :- k8s.schema.deployment/Deployment]
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
-                                              {:namespace (get-in deployment [:metadata :namespace])})))
+         {:namespace (get-in deployment [:metadata :namespace])})))
 
 (s/defn create-ingress-impl! [ctx ingress]
   (<!! (extensions-v1beta1/create-namespaced-ingress ctx ingress {:namespace (get-in ingress [:metadata :namespace])})))
@@ -102,17 +85,15 @@
     (not= (:success api-resources) false)))
 
 (defn raise-errors! [apiserver-response]
-  (log/info apiserver-response)
-  (if (and (= (:kind apiserver-response) "Status")
-           (not= (:status apiserver-response) "Success"))
-    (do (log/error apiserver-response)
-        (throw (ex-info "Error from ApiServer" apiserver-response)))
+  (log/info :log apiserver-response)
+  (if (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
+    (exception/server-error! {:log apiserver-response})
     apiserver-response))
 
 (defrecord KubernetesClient [config]
-  p-k8s/KubernetesClient
+  protocols.kubernetes-client/KubernetesClient
   (create-namespace! [this namespace]
-    (p-k8s/create-namespace! this namespace {}))
+    (protocols.kubernetes-client/create-namespace! this namespace {}))
   (create-namespace! [this namespace labels]
     (-> (create-namespace-impl! (:ctx this) namespace labels)
         (raise-errors!)))
@@ -153,7 +134,7 @@
 
   component/Lifecycle
   (start [this]
-    (let [ctx (k8s/make-context (p-cfg/get-config config [:kubernetes :proxy :url]))]
+    (let [ctx (k8s/make-context (protocols.config/get-in! config [:kubernetes :proxy :url]))]
       (assoc this
         :ctx ctx
         :health (check-api-health ctx))))

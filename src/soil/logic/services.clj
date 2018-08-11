@@ -1,8 +1,8 @@
 (ns soil.logic.services
   (:require [schema.core :as s]
-            [soil.components.configserver.configserver-client :as cfg-server]
-            [soil.protocols.config.config :as p-cfg]
-            [soil.components.kubernetes.schema.deployment :as k8s-schema-deploy]))
+            [soil.components.config-server-client :as protocols.config-server-client]
+            [soil.components.kubernetes.schema.deployment :as k8s-schema-deploy]
+            [clj-service.protocols.config :as protocols.config]))
 
 
 (s/defn config->deployment :- k8s-schema-deploy/Deployment
@@ -53,7 +53,7 @@
     port))
 
 (s/defn config->ingress
-  [service-configuration :- cfg-server/ServiceConfiguration
+  [service-configuration :- protocols.config-server-client/ServiceConfiguration
    namespace :- s/Str
    domain :- s/Str]
   (let [stinger-ports [{:port 24000 :name "stinger"}]
@@ -120,7 +120,7 @@
                 :replicas 1
                 :template {:metadata {:labels {:app "hive"}}
                            :spec     {:containers [{:name  "hive"
-                                                    :image (str "formicarium/hive:" (p-cfg/get-config config [:hive :version]))
+                                                    :image (str "formicarium/hive:" (protocols.config/get-in! config [:hive :version]))
                                                     :ports [{:name          "hive-api"
                                                              :containerPort 8080}
                                                             {:name          "hive-repl"
@@ -151,7 +151,7 @@
 
 (defn gen-hive-ingress
   [namespace config]
-  (let [domain (p-cfg/get-config config [:formicarium :domain])]
+  (let [domain (protocols.config/get-in! config [:formicarium :domain])]
     {:apiVersion "extensions/v1beta1"
      :kind       "Ingress"
      :metadata   {:name        "hive"
@@ -199,14 +199,14 @@
                 :replicas 1
                 :template {:metadata {:labels {:app "tanajura"}}
                            :spec     {:containers [{:name  "hive"
-                                                    :image (str "formicarium/tanajura:" (p-cfg/get-config config [:tanajura :version]))
+                                                    :image (str "formicarium/tanajura:" (protocols.config/get-in! config [:tanajura :version]))
                                                     :ports [{:name          "tanajura-api"
                                                              :containerPort 3002}
                                                             {:name          "tanajura-git"
                                                              :containerPort 6666}]}]}}}})
 
 (defn gen-tanajura-ingress [devspace config]
-  (let [domain (p-cfg/get-config config [:formicarium :domain])]
+  (let [domain (protocols.config/get-in! config [:formicarium :domain])]
     {:apiVersion "extensions/v1beta1"
      :kind       "Ingress"
      :metadata   {:name        "tanajura"

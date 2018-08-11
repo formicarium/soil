@@ -1,20 +1,20 @@
 (ns soil.controllers.devspaces
-  (:require [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
-            [soil.controllers.services :as c-svc]
-            [soil.logic.devspace :as l-env]
-            [soil.logic.services :as l-svc]
+  (:require [soil.protocols.kubernetes-client :as protocols.kubernetes-client]
+            [soil.controllers.services :as controllers.services]
+            [soil.logic.devspace :as logic.devspace]
+            [soil.logic.services :as logic.service]
             [soil.config :as config]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]
-            [soil.protocols.config.config :as protocol.config]))
+            [clj-service.protocols.config :as protocols.config]))
 
 (defn create-devspace
   [devspace config k8s-client]
   (let [namespace (:name devspace)]
-    (merge {:namespace (-> (p-k8s/create-namespace! k8s-client namespace {:kind config/fmc-devspace-label})
-                           l-env/namespace->devspace)}
-      (c-svc/create-kubernetes-resources! (l-svc/hive->kubernetes namespace config)
+    (merge {:namespace (-> (protocols.kubernetes-client/create-namespace! k8s-client namespace {:kind config/fmc-devspace-label})
+                           logic.devspace/namespace->devspace)}
+      (controllers.services/create-kubernetes-resources! (logic.service/hive->kubernetes namespace config)
         k8s-client)
-      (c-svc/create-kubernetes-resources! (l-svc/tanajura->kubernetes namespace config)
+      (controllers.services/create-kubernetes-resources! (logic.service/tanajura->kubernetes namespace config)
         k8s-client))))
 
 (defn hive-api-url [domain devspace]
@@ -23,7 +23,7 @@
 (defn hive-repl-host [domain k8s-client devspace]
   (let [repl-port (->> k8s-client
                        diplomat.kubernetes/get-nginx-tcp-config-map
-                       (l-svc/get-repl-port devspace "hive"))]
+                       (logic.service/get-repl-port devspace "hive"))]
     (when repl-port
       (str "nrepl://hive." devspace "." domain ":" repl-port))))
 
@@ -34,13 +34,13 @@
   (str "http://git." devspace "." domain))
 
 (defn config-server-url [config devspace]
-  (protocol.config/get-config config [:configserver :url]))
+  (protocols.config/get-in! config [:config-server :url]))
 
 (defn list-devspaces
   [k8s-client config]
-  (let [top-level       (protocol.config/get-config config [:formicarium :domain])
-        devspaces       (->> (p-k8s/list-namespaces k8s-client)
-                             l-env/namespaces->devspaces)
+  (let [top-level       (protocols.config/get-in! config [:formicarium :domain])
+        devspaces       (->> (protocols.kubernetes-client/list-namespaces k8s-client)
+                             logic.devspace/namespaces->devspaces)
         devspaces-names (map :name devspaces)]
     (->> devspaces
          (reduce (fn [acc {:keys [name]}] (conj acc name)) [])
@@ -56,6 +56,6 @@
 
 (defn delete-devspace
   [devspace k8s-client]
-  (do (p-k8s/delete-namespace! k8s-client (:name devspace))
+  (do (protocols.kubernetes-client/delete-namespace! k8s-client (:name devspace))
       {:success true}))
 

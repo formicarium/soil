@@ -1,6 +1,5 @@
-(ns soil.components.kubernetes.kubernetes-api-server
+(ns soil.components.kubernetes-api-server
   (:require [com.stuartsierra.component :as component]
-            [schema.core :as s]
             [me.raynes.conch.low-level :as sh]))
 
 (defrecord KubernetesApiServer []

@@ -1,21 +1,13 @@
 (ns soil.service
-  (:require [io.pedestal.http :as http]
-            [io.pedestal.http.body-params :as body-params]
-            [cheshire.core :as cheshire]
+  (:require [io.pedestal.http.body-params :as body-params]
             [soil.controllers.devspaces :as c-env]
             [soil.controllers.services :as c-svc]
-            [soil.components.api.soil-api :as soil-api]
-            [soil.protocols.config.config :as protocol.config]
-            [io.pedestal.interceptor.helpers :as int-helpers]))
-
-(def externalize-json (int-helpers/on-response ::json-response
-                        (fn [response]
-                          (-> response
-                              (update-in [:body] (fn [body] (if body
-                                                              (cheshire/generate-string body)
-                                                              body)))
-                              (update-in [:headers] (fn [headers] (-> (or headers {})
-                                                                      (assoc "Content-Type" "application/json"))))))))
+            [clj-service.pedestal.interceptors.adapt :as int-adapt]
+            [clj-service.pedestal.interceptors.error :as int-err]
+            [clj-service.pedestal.interceptors.schema :as int-schema]
+            [clj-service.protocols.config :as protocols.config]
+            [io.pedestal.interceptor.helpers :as int-helpers]
+            [io.pedestal.http.route :as route]))
 
 (defn get-devspaces
   [{{:keys [config k8s-client]} :components}]
@@ -33,7 +25,7 @@
   [{{:keys [config]} :components}]
   {:status  200
    :headers {}
-   :body    {:version (protocol.config/get-config config [:soil :version])}})
+   :body    {:version (protocols.config/get-in! config [:soil :version])}})
 
 (defn components-on-request-interceptor
   [components]
@@ -57,15 +49,15 @@
 
 (defn deploy-service
   [{{:keys [k8s-client configserver config]} :components
-    body :json-params
-    headers :headers}]
+    body                                     :json-params
+    headers                                  :headers}]
   {:status  200
    :headers {}
    :body    (c-svc/deploy-service! body
-                                   (get headers "formicarium-devspace" "default")
-                                   k8s-client
-                                   configserver
-                                   config)})
+              (get headers "formicarium-devspace" "default")
+              k8s-client
+              configserver
+              config)})
 
 (defn destroy-service
   [request]
@@ -76,33 +68,20 @@
               (get-in request [:components :k8s-client]))})
 
 (def routes
-  `[[["/" ^:interceptors [(body-params/body-params) externalize-json]
-      ["/api"
-       ["/health" {:get [:get-health get-health]}]
-       ["/version" {:get [:get-version get-version]}]
-       ["/devspaces"
-        {:get get-devspaces}
-        {:post create-devspace}
-        {:delete delete-devspace}]
-       ["/services"
-        {:post [:deploy-service deploy-service]}
-        {:delete [:destroy-service destroy-service]}]]]]])
-
-
-;; Consumed by soil.server/create-server
-;; See http/default-interceptors for additional options you can configure
-(def service {:env                   :prod
-              ::http/routes          routes
-              ::http/allowed-origins {:creds           true
-                                      :allowed-origins (constantly true)}
-              ::http/type            :jetty
-              ::http/join?           true
-              ::http/port            8080})
-
-(defn create-service
-  [env]
-  (case env
-    :prod (merge service {:env :prod})
-    :dev (merge service {:env :dev})
-    :test (merge service {:env :test})))
+  (route/expand-routes
+    `[[["/" ^:interceptors [int-err/catch!
+                            (body-params/body-params)
+                            int-adapt/coerce-body
+                            int-adapt/content-neg-intc
+                            int-schema/coerce-output]
+        ["/api"
+         ["/health" {:get [:get-health get-health]}]
+         ["/version" {:get [:get-version get-version]}]
+         ["/devspaces"
+          {:get get-devspaces}
+          {:post create-devspace}
+          {:delete delete-devspace}]
+         ["/services"
+          {:post [:deploy-service deploy-service]}
+          {:delete [:destroy-service destroy-service]}]]]]]))
 

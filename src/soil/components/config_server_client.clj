@@ -1,10 +1,10 @@
-(ns soil.components.configserver.configserver-client
-  (:require [soil.protocols.configserver.configserver-client :as p-cs]
+(ns soil.components.config-server-client
+  (:require [soil.protocols.config-server-client :as protocols.config-server]
+            [clj-service.protocols.config :as protocols.config]
             [schema.core :as s]
             [org.httpkit.client :as http-client]
             [cheshire.core :as cheshire]
-            [com.stuartsierra.component :as component]
-            [soil.protocols.config.config :as p-cfg]))
+            [com.stuartsierra.component :as component]))
 
 (def ServiceConfiguration
   {(s/optional-key :environment-variables) {s/Keyword s/Str}
@@ -21,8 +21,9 @@
 (defn http-post
   [url body]
   @(http-client/post url
-                     {:body    (cheshire/generate-string body)
-                      :headers {"Content-Type" "application/json"}}))
+     {:body    (cheshire/generate-string body)
+      :headers {"Content-Type" "application/json"}}))
+
 (defn str->json [str]
   (cheshire/parse-string str true))
 
@@ -40,14 +41,14 @@
       str->json))
 
 (defrecord ConfigServer [config]
-  p-cs/ConfigServerClient
+  protocols.config-server/ConfigServerClient
   (on-new-devspace [this devspace] (on-new-devspace devspace this))
   (on-deploy-service [this service-args] (on-deploy-service service-args this))
 
   component/Lifecycle
-  (start [this] (assoc this :url (p-cfg/get-config config [:configserver :url])))
+  (start [this] (assoc this :url (protocols.config/get-in! config [:config-server :url])))
   (stop [this] (dissoc this :url)))
 
-(defn new-configserver
+(defn new-config-server
   []
   (map->ConfigServer {}))
