@@ -57,7 +57,6 @@
 (s/defn create-deployment-impl
   [ctx :- KubernetesContext
    deployment :- k8s.schema.deployment/Deployment]
-  (prn "CREATE-DEPLOYMENT-IMPL" deployment)
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
                                               {:namespace (get-in deployment [:metadata :namespace])})))
 
@@ -72,15 +71,13 @@
                                                              :namespace namespace})))
 
 (defn create-service-impl [ctx service]
-  (log/info "CREATE-SERVICE-IMPL")
-  (log/info service)
   (<!! (k8s/create-namespaced-service ctx service {:namespace (get-in service [:metadata :namespace])})))
 
 (s/defn delete-service-impl
   [ctx :- KubernetesContext
-   service-name :- s/Str
+   name :- s/Str
    namespace :- s/Str]
-  (<!! (k8s/delete-namespaced-service ctx {} {:name      service-name
+  (<!! (k8s/delete-namespaced-service ctx {} {:name      name
                                               :namespace namespace})))
 
 (defn list-namespaces-impl [ctx]
