@@ -19,13 +19,26 @@
                                         {:data {external-port (str namespace "/" service ":" service-port)}}
                                         {:name      "my-nginx-nginx-ingress-tcp"
                                          :namespace "default"})))
+
+(def patch
+  {:apiVersion "apps/v1"
+   :kind       "Deployment"
+   :spec       {:template {:spec     {:containers [{:name  "nginx-ingress-controller"
+                                                    :ports [{:name          "4318-tcp"
+                                                             :containerPort 4318}]}]}}}})
+(defn patch-deployment-impl!
+  [ctx name namespace deployment]
+  (<!! (k8s-apps/patch-namespaced-deployment ctx deployment {:name name
+                                                             :namespace namespace})))
+
 (s/defn get-config-map-impl
   [ctx :- KubernetesContext
    name :- s/Str
    namespace :- s/Str]
   (<!! (k8s/read-namespaced-config-map ctx {:name      name
                                             :namespace namespace})))
-(s/defn patch-config-map-impl
+
+(s/defn patch-config-map-impl!
   [ctx :- KubernetesContext
    name :- s/Str
    namespace :- s/Str
@@ -36,47 +49,47 @@
                                         {:name      name
                                          :namespace namespace})))
 
-(s/defn create-namespace-impl
+(s/defn create-namespace-impl!
   [ctx :- KubernetesContext
    namespace-name :- s/Str
    labels :- (s/pred map?)]
   (<!! (k8s/create-namespace ctx {:metadata {:name   namespace-name
                                              :labels labels}})))
 
-(s/defn delete-namespace-impl
+(s/defn delete-namespace-impl!
   [ctx :- KubernetesContext namespace-name :- s/Str]
   (<!! (k8s/delete-namespace ctx {} {:name namespace-name})))
 
-(s/defn delete-deployment-impl
+(s/defn delete-deployment-impl!
   [ctx :- KubernetesContext
    deployment-name :- s/Str
    deployment-namespace :- s/Str]
   (<!! (k8s-apps/delete-namespaced-deployment ctx {} {:name      deployment-name
                                                       :namespace deployment-namespace})))
 
-(s/defn create-deployment-impl
+(s/defn create-deployment-impl!
   [ctx :- KubernetesContext
    deployment :- k8s.schema.deployment/Deployment]
   (prn "CREATE-DEPLOYMENT-IMPL" deployment)
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
                                               {:namespace (get-in deployment [:metadata :namespace])})))
 
-(s/defn create-ingress-impl [ctx ingress]
+(s/defn create-ingress-impl! [ctx ingress]
   (<!! (extensions-v1beta1/create-namespaced-ingress ctx ingress {:namespace (get-in ingress [:metadata :namespace])})))
 
-(s/defn delete-ingress-impl
+(s/defn delete-ingress-impl!
   [ctx :- KubernetesContext
    ingress-name :- s/Str
    namespace :- s/Str]
   (<!! (extensions-v1beta1/delete-namespaced-ingress ctx {} {:name      ingress-name
                                                              :namespace namespace})))
 
-(defn create-service-impl [ctx service]
+(defn create-service-impl! [ctx service]
   (log/info "CREATE-SERVICE-IMPL")
   (log/info service)
   (<!! (k8s/create-namespaced-service ctx service {:namespace (get-in service [:metadata :namespace])})))
 
-(s/defn delete-service-impl
+(s/defn delete-service-impl!
   [ctx :- KubernetesContext
    service-name :- s/Str
    namespace :- s/Str]
@@ -101,44 +114,44 @@
 
 (defrecord KubernetesClient [config]
   p-k8s/KubernetesClient
-  (create-namespace [this namespace]
-    (p-k8s/create-namespace this namespace {}))
-  (create-namespace [this namespace labels]
-    (-> (create-namespace-impl (:ctx this) namespace labels)
+  (create-namespace! [this namespace]
+    (p-k8s/create-namespace! this namespace {}))
+  (create-namespace! [this namespace labels]
+    (-> (create-namespace-impl! (:ctx this) namespace labels)
         (raise-errors!)))
   (list-namespaces [this]
     (-> (list-namespaces-impl (:ctx this))
         (raise-errors!)))
-  (delete-namespace [this namespace-name]
-    (-> (delete-namespace-impl (:ctx this) namespace-name)
+  (delete-namespace! [this namespace-name]
+    (-> (delete-namespace-impl! (:ctx this) namespace-name)
         (raise-errors!)))
 
-  (create-ingress [this ingress]
-    (-> (create-ingress-impl (:ctx this) ingress)
+  (create-ingress! [this ingress]
+    (-> (create-ingress-impl! (:ctx this) ingress)
         (raise-errors!)))
-  (delete-ingress [this ingress-name namespace]
-    (-> (delete-ingress-impl (:ctx this) ingress-name namespace)
-        (raise-errors!)))
-
-  (create-service [this service]
-    (-> (create-service-impl (:ctx this) service)
-        (raise-errors!)))
-  (delete-service [this service-name namespace]
-    (-> (delete-service-impl (:ctx this) service-name namespace)
+  (delete-ingress! [this ingress-name namespace]
+    (-> (delete-ingress-impl! (:ctx this) ingress-name namespace)
         (raise-errors!)))
 
-  (create-deployment [this deployment]
-    (-> (create-deployment-impl (:ctx this) deployment)
+  (create-service! [this service]
+    (-> (create-service-impl! (:ctx this) service)
         (raise-errors!)))
-  (delete-deployment [this deployment-name namespace]
-    (-> (delete-deployment-impl (:ctx this) deployment-name namespace)
+  (delete-service! [this service-name namespace]
+    (-> (delete-service-impl! (:ctx this) service-name namespace)
+        (raise-errors!)))
+
+  (create-deployment! [this deployment]
+    (-> (create-deployment-impl! (:ctx this) deployment)
+        (raise-errors!)))
+  (delete-deployment! [this deployment-name namespace]
+    (-> (delete-deployment-impl! (:ctx this) deployment-name namespace)
         (raise-errors!)))
 
   (get-config-map [this name namespace]
     (-> (get-config-map-impl (:ctx this) name namespace)
         (raise-errors!)))
-  (patch-config-map [this name namespace config-map]
-    (-> (patch-config-map-impl (:ctx this) name namespace config-map)
+  (patch-config-map! [this name namespace config-map]
+    (-> (patch-config-map-impl! (:ctx this) name namespace config-map)
         (raise-errors!)))
 
   component/Lifecycle

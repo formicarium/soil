@@ -28,5 +28,5 @@
 (fact "Delete devspace"
   (c-env/delete-devspace {:name ..env-name..} ..k8s-client..) => {:success true}
   (provided
-    (p-k8s/delete-namespace ..k8s-client.. ..env-name..) => irrelevant))
+    (p-k8s/delete-namespace! ..k8s-client.. ..env-name..) => irrelevant))
 

@@ -9,7 +9,7 @@
 (defn create-devspace
   [devspace config k8s-client]
   (let [namespace (:name devspace)]
-    (merge {:namespace (-> (p-k8s/create-namespace k8s-client namespace {:kind config/fmc-devspace-label})
+    (merge {:namespace (-> (p-k8s/create-namespace! k8s-client namespace {:kind config/fmc-devspace-label})
                            l-env/namespace->devspace)}
            (c-svc/create-kubernetes-resources! (l-svc/hive->kubernetes namespace config)
                                                k8s-client)
@@ -43,6 +43,6 @@
 
 (defn delete-devspace
   [devspace k8s-client]
-  (do (p-k8s/delete-namespace k8s-client (:name devspace))
+  (do (p-k8s/delete-namespace! k8s-client (:name devspace))
       {:success true}))
 
