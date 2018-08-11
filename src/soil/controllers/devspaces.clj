@@ -3,9 +3,34 @@
             [soil.controllers.services :as controllers.services]
             [soil.logic.devspace :as logic.devspace]
             [soil.logic.services :as logic.service]
+            [soil.adapters.application :as adapters.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]
             [clj-service.protocols.config :as protocols.config]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [selmer.parser]
+            [soil.models.application :as models.application]
+            [clojure.java.io :as io]))
+
+(s/defn ^:private load-application-template :- models.application/Application
+  [name :- s/Str
+   replace-map :- (s/pred map?)
+   config :- protocols.config/IConfig]
+  (-> (str "templates/" name ".edn")
+      io/resource
+      slurp
+      (selmer.parser/render replace-map)
+      read-string
+      (adapters.application/definition->application config)))
+
+(s/defn hive-application :- models.application/Application
+  [devspace :- s/Str
+   config :- protocols.config/Config]
+  (load-application-template "hive" {:devspace devspace} config))
+
+(s/defn tanajura-application :- models.application/Application
+  [devspace :- s/Str
+   config :- protocols.config/Config]
+  (load-application-template "tanajura" {:devspace devspace} config))
 
 (s/defn create-devspace!
   [devspace-name :- s/Str

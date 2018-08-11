@@ -12,6 +12,7 @@
         service-name "hive"]
     {:name       service-name
      :devspace   devspace
+     :syncable?  false
      :containers [{:name  service-name
                    :image hive-image
                    :env   {}}]
@@ -26,8 +27,7 @@
                   {:name      "zmq"
                    :port      9898
                    :type      :tcp
-                   :container service-name}]
-     :syncable?  false}))
+                   :container service-name}]}))
 
 (s/defn tanajura-definition :- schemas.application/ApplicationDefinition
   [devspace :- s/Str
@@ -36,6 +36,7 @@
         service-name   "tanajura"]
     {:name       service-name
      :devspace   devspace
+     :syncable?  false
      :containers [{:name  service-name
                    :image tanajura-image
                    :env   {}}]
@@ -46,39 +47,4 @@
                   {:name      "git"
                    :port      6666
                    :type      :http
-                   :container service-name}]
-     :syncable?  false}))
-
-(s/defn hive-application :- models.application/Application  ;; This is not needed, we can pss hive-definition to definition->application
-  [devspace-name :- s/Str
-   config :- protocols.config/IConfig]
-  (let [hive-image   (protocols.config/get-in! config [:hive :image])
-        domain       (protocols.config/get-in! config [:formicarium :domain])
-        service-name "hive"]
-    #:application{:name       service-name
-                  :devspace   devspace-name
-                  :containers [#:container{:name  service-name
-                                           :image hive-image
-                                           :env   {}}]
-                  :interfaces [(logic.interface/new {:name      "default"
-                                                     :port      8080
-                                                     :container service-name
-                                                     :devspace  devspace-name
-                                                     :service   service-name
-                                                     :domain    domain})
-                               (logic.interface/new {:name      "repl"
-                                                     :port      2222
-                                                     :container service-name
-                                                     :type      :interface.type/tcp
-                                                     :devspace  devspace-name
-                                                     :service   service-name
-                                                     :domain    domain})
-                               (logic.interface/new {:name      "zmq"
-                                                     :port      9898
-                                                     :type      :interface.type/tcp
-                                                     :container service-name
-                                                     :devspace  devspace-name
-                                                     :service   service-name
-                                                     :domain    domain})]
-                  :syncable?  false
-                  :status     :application.status/template}))
+                   :container service-name}]}))

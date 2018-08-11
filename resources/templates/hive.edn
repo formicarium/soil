@@ -1,0 +1,18 @@
+{:name       "hive"
+ :devspace   "{{devspace}}"
+ :syncable?  false
+ :containers [{:name  "hive"
+               :image "formicarium/hive:1f09933bdde4ac685934b09bd3d34309e965a76c"
+               :env   {}}]
+ :interfaces [{:name      :default
+               :port      8080
+               :type      :http
+               :container "hive"}
+              {:name      "repl"
+               :port      2222
+               :type      :tcp
+               :container "hive"}
+              {:name      "zmq"
+               :port      9898
+               :type      :tcp
+               :container "hive"}]}
