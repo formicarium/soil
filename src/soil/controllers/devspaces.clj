@@ -82,6 +82,6 @@
 
 (defn delete-devspace
   [devspace k8s-client]
-  (do (protocols.kubernetes-client/delete-namespace! k8s-client (:name devspace))
+  (do (protocols.kubernetes-client/delete-namespace! k8s-client devspace)
       {:success true}))
 
