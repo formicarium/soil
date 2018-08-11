@@ -199,7 +199,7 @@
    :spec       {:selector {:matchLabels {:app "tanajura"}}
                 :replicas 1
                 :template {:metadata {:labels {:app "tanajura"}}
-                           :spec     {:containers [{:name  "hive"
+                           :spec     {:containers [{:name  "tanajura"
                                                     :image (str "formicarium/tanajura:" (protocols.config/get-in! config [:tanajura :version]))
                                                     :ports [{:name          "tanajura-api"
                                                              :containerPort 3002}
