@@ -3,41 +3,54 @@
             [soil.controllers.services :as c-svc]
             [soil.logic.devspace :as l-env]
             [soil.logic.services :as l-svc]
-            [soil.diplomat.kubernetes :as d-k8s]
-            [soil.config :as config]))
+            [soil.config :as config]
+            [soil.diplomat.kubernetes :as diplomat.kubernetes]
+            [soil.protocols.config.config :as protocol.config]))
 
 (defn create-devspace
   [devspace config k8s-client]
   (let [namespace (:name devspace)]
     (merge {:namespace (-> (p-k8s/create-namespace! k8s-client namespace {:kind config/fmc-devspace-label})
                            l-env/namespace->devspace)}
-           (c-svc/create-kubernetes-resources! (l-svc/hive->kubernetes namespace config)
-                                               k8s-client)
-           (c-svc/create-kubernetes-resources! (l-svc/tanajura->kubernetes namespace config)
-                                               k8s-client))))
+      (c-svc/create-kubernetes-resources! (l-svc/hive->kubernetes namespace config)
+        k8s-client)
+      (c-svc/create-kubernetes-resources! (l-svc/tanajura->kubernetes namespace config)
+        k8s-client))))
 
-(def hive-host-template "http://hive.{{devspace}}.formicarium.host")
-(def tanajura-host-template "http://tanajura.{{devspace}}.formicarium.host")
-(def tanajura-git-host-template "http://git.{{devspace}}.formicarium.host")
+(defn hive-api-url [domain devspace]
+  (str "http://hive." devspace "." domain))
 
-(defn hive-host [devspace]
-  (clojure.string/replace hive-host-template #"\{\{(.*)\}\}" devspace))
+(defn hive-repl-host [domain k8s-client devspace]
+  (let [repl-port (->> k8s-client
+                       diplomat.kubernetes/get-nginx-tcp-config-map
+                       (l-svc/get-repl-port devspace "hive"))]
+    (when repl-port
+      (str "nrepl://hive." devspace "." domain ":" repl-port))))
 
-(defn tanajura-host [devspace]
-  (clojure.string/replace tanajura-host-template #"\{\{(.*)\}\}" devspace))
+(defn tanajura-api-url [domain devspace]
+  (str "http://tanajura." devspace "." domain))
 
-(defn tanajura-git-host [devspace]
-  (clojure.string/replace tanajura-git-host-template #"\{\{(.*)\}\}" devspace))
+(defn tanajura-git-url [domain devspace]
+  (str "http://git." devspace "." domain))
+
+(defn config-server-url [config devspace]
+  (protocol.config/get-config config [:configserver :url]))
 
 (defn list-devspaces
-  [k8s-client]
-  (let [devspaces (->> (p-k8s/list-namespaces k8s-client)
-                       l-env/namespaces->devspaces)
+  [k8s-client config]
+  (let [top-level       (protocol.config/get-config config [:formicarium :domain])
+        devspaces       (->> (p-k8s/list-namespaces k8s-client)
+                             l-env/namespaces->devspaces)
         devspaces-names (map :name devspaces)]
     (->> devspaces
          (reduce (fn [acc {:keys [name]}] (conj acc name)) [])
-         (map (juxt hive-host tanajura-host tanajura-git-host))
-         (map #(zipmap [:hiveUrl :tanajuraApiUrl :tanajuraGitUrl] %))
+         (map (juxt
+                (partial hive-api-url top-level)
+                (partial hive-repl-host top-level k8s-client)
+                (partial tanajura-api-url top-level)
+                (partial tanajura-git-url top-level)
+                (partial config-server-url config)))
+         (map #(zipmap [:hiveApiUrl :hiveReplUrl :tanajuraApiUrl :tanajuraGitUrl :configServerUrl] %))
          (map (fn [devspace url] {devspace url}) devspaces-names)
          (reduce merge))))
 

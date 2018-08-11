@@ -9,19 +9,19 @@
             [io.pedestal.interceptor.helpers :as int-helpers]))
 
 (def externalize-json (int-helpers/on-response ::json-response
-                                               (fn [response]
-                                                 (-> response
-                                                     (update-in [:body] (fn [body] (if body
-                                                                                     (cheshire/generate-string body)
-                                                                                     body)))
-                                                     (update-in [:headers] (fn [headers] (-> (or headers {})
-                                                                                             (assoc "Content-Type" "application/json"))))))))
+                        (fn [response]
+                          (-> response
+                              (update-in [:body] (fn [body] (if body
+                                                              (cheshire/generate-string body)
+                                                              body)))
+                              (update-in [:headers] (fn [headers] (-> (or headers {})
+                                                                      (assoc "Content-Type" "application/json"))))))))
 
 (defn get-devspaces
-  [request]
+  [{{:keys [config k8s-client]} :components}]
   {:status  200
    :headers {}
-   :body    (c-env/list-devspaces (get-in request [:components :k8s-client]))})
+   :body    (c-env/list-devspaces k8s-client config)})
 
 (defn get-health
   [request]
@@ -38,16 +38,16 @@
 (defn components-on-request-interceptor
   [components]
   (int-helpers/on-request ::components-on-request
-                          (fn [request]
-                            (assoc request :components components))))
+    (fn [request]
+      (assoc request :components components))))
 
 (defn create-devspace
   [{{:keys [config k8s-client]} :components, json-params :json-params}]
   {:status  200
    :headers {}
    :body    (c-env/create-devspace json-params
-                                   config
-                                   k8s-client)})
+              config
+              k8s-client)})
 
 (defn delete-devspace
   [request]
@@ -72,8 +72,8 @@
   {:status  200
    :headers {}
    :body    (c-svc/destroy-service! (get-in request [:json-params :name])
-                                    (or (get-in request [:headers "formicarium-devspace"]) "default")
-                                    (get-in request [:components :k8s-client]))})
+              (or (get-in request [:headers "formicarium-devspace"]) "default")
+              (get-in request [:components :k8s-client]))})
 
 (def routes
   `[[["/" ^:interceptors [(body-params/body-params) externalize-json]

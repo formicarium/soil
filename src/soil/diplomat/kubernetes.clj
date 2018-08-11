@@ -46,3 +46,7 @@
   [deployment :- models.k8s/Deployment
    k8s-client]
   (p-k8s/create-deployment! k8s-client deployment))
+
+(defn get-nginx-tcp-config-map
+  [k8s-client]
+  (p-k8s/get-config-map k8s-client tcp-config-map-name tcp-config-map-namespace))

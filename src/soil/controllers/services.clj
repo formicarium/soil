@@ -31,15 +31,20 @@
   (let [resources (create-kubernetes-resources! (->> service-args
                                                      (p-cs/on-deploy-service config-server)
                                                      (to-kubernetes-resources devspace config))
-                                                k8s-client)]
+                    k8s-client)]
     resources))
+
+(defn delete-ingresses [service-name devspace k8s-client]
+  (p-k8s/delete-service! k8s-client (str service-name "-stinger") devspace)
+  (p-k8s/delete-service! k8s-client (str service-name "-default") devspace)
+  "deleted")
 
 (defn destroy-service!
   [service-name devspace k8s-client]
   {:deployment   (do (p-k8s/delete-deployment! k8s-client service-name devspace) "deleted")
-   :service      (do (p-k8s/delete-service! k8s-client service-name devspace) "deleted")
+   :service      (delete-ingresses service-name devspace k8s-client)
    :ingress      (do (p-k8s/delete-ingress! k8s-client service-name devspace) "deleted")
-   :tcp-services (do (d-k8s/delete-tcp-ports [service-name] k8s-client) "deleted")})
+   :tcp-services (do #_(d-k8s/delete-tcp-ports [service-name] k8s-client) "deleted")})
 
 #_(defn create-hive!
     [devspace k8s-client]

@@ -25,11 +25,11 @@
                                                                        :containerPort 24000}]
                                                                      (mapv (fn [port] {:name          (:name port)
                                                                                        :containerPort (:port port)})
-                                                                           (:ports service-configuration)))
+                                                                       (:ports service-configuration)))
                                                       :env   (concat
                                                                [{:name  "STARTUP_CLONE"
                                                                  :value "true"}
-                                                                {:name "START_AFTER_PULL"
+                                                                {:name  "START_AFTER_PULL"
                                                                  :value "true"}
                                                                 {:name  "STINGER_PORT"
                                                                  :value "24000"}
@@ -40,7 +40,7 @@
                                                                 {:name  "GIT_URI"
                                                                  :value (str "http://tanajura-git/" service-name ".git")}]
                                                                (mapv (fn [[k v]] {:name (name k) :value v})
-                                                                     (:environment-variables service-configuration)))}]}}}}))
+                                                                 (:environment-variables service-configuration)))}]}}}}))
 
 (defn calc-host
   [hostname port-name namespace domain]
@@ -57,9 +57,9 @@
    namespace :- s/Str
    domain :- s/Str]
   (let [stinger-ports [{:port 24000 :name "stinger"}]
-        ports (concat (:ports service-configuration) stinger-ports)
-        service-name (:name service-configuration)
-        hostname (or service-name (:host service-configuration))]
+        ports         (concat (:ports service-configuration) stinger-ports)
+        service-name  (:name service-configuration)
+        hostname      (or service-name (:host service-configuration))]
     {:apiVersion "extensions/v1beta1"
      :kind       "Ingress"
      :metadata   {:name        service-name
@@ -89,9 +89,9 @@
 
 (defn config->services
   [service-configuration namespace]
-  (let [service-name (:name service-configuration)
+  (let [service-name  (:name service-configuration)
         stinger-ports [{:port 24000 :name "stinger"}]
-        ports (concat (:ports service-configuration) stinger-ports)]
+        ports         (concat (:ports service-configuration) stinger-ports)]
     (mapv #(port->service % service-name namespace) ports)))
 
 
@@ -251,3 +251,13 @@
    :ingress      (gen-tanajura-ingress namespace config)
    :service      [(gen-tanajura-api-service namespace) (gen-tanajura-git-service namespace)]
    :tcp-services []})
+
+(defn get-repl-port [devspace-name service-name config-map]
+  (some->> config-map
+           :data
+           (filter
+             (fn [[_ service]]
+               (clojure.string/includes? service (str devspace-name "/" service-name))))
+           ffirst
+           name
+           Integer/parseInt))
