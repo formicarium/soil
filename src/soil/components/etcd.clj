@@ -80,3 +80,6 @@
 
   (delete! [this key]
     (delete-key (:kv-client this) key)))
+
+(defn new-etcd []
+  (map->Etcd {}))
