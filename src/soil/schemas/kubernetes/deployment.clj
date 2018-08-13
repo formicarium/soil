@@ -1,7 +1,7 @@
-(ns soil.components.kubernetes.schema.deployment
+(ns soil.schemas.kubernetes.deployment
   (:require [schema.core :as s]
-            [soil.components.kubernetes.schema.common :as c]
-            [soil.components.kubernetes.schema.pod :as pod]))
+            [soil.schemas.kubernetes.common :as c]
+            [soil.schemas.kubernetes.pod :as pod]))
 
 (def DeploymentStrategyType
   (s/enum "RollingUpdate" "Recreate"))

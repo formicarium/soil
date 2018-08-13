@@ -4,13 +4,12 @@
             [io.pedestal.log :as log]
             [schema.core :as s]
             [soil.protocols.kubernetes-client :as protocols.kubernetes-client]
-            [soil.components.kubernetes.schema.deployment :as k8s.schema.deployment]
+            [soil.schemas.kubernetes.deployment :as schemas.kubernetes.deployment]
             [kubernetes.api.apps-v1 :as k8s-apps]
             [kubernetes.api.extensions-v1beta1 :as extensions-v1beta1]
             [kubernetes.api.v1 :as k8s]
             [clj-service.exception :as exception]
             [clj-service.protocols.config :as protocols.config]))
-
 (def KubernetesContext {:server s/Str})
 (def ctx (k8s/make-context "http://localhost:9000"))
 
@@ -50,7 +49,7 @@
 
 (s/defn create-deployment-impl!
   [ctx :- KubernetesContext
-   deployment :- k8s.schema.deployment/Deployment]
+   deployment :- schemas.kubernetes.deployment/Deployment]
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
          {:namespace (get-in deployment [:metadata :namespace])})))
 
