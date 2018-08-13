@@ -41,18 +41,16 @@
 (defn ^:private get-key [^EtcdKvClient kv-client k prefix?]
   (let [response ^RangeResponse (-> (.get kv-client (str->byte-string (name k)))
                                     (with-prefix prefix?)
-                                    .sync)
-        kv (into [] (.getKvsList response))]
-    (when-not (empty? kv)
-      (mapv #(do {:key   (-> % .getKey byte-string->str keyword)
-                  :value (-> % .getValue byte-string->str)}) kv))))
+                                    .sync)]
+    (mapv #(do {:key   (-> % .getKey byte-string->str keyword)
+                :value (-> % .getValue byte-string->str)})
+          (into [] (.getKvsList response)))))
 
 (defn ^:private delete-key [^EtcdKvClient kv-client k]
   (.sync (.delete kv-client (str->byte-string (name k)))))
 
 (defn ^:private get-clj [^EtcdKvClient kv-client k prefix?]
-  (mapv #(do {:key   (:key %)
-              :value (base64->clj (:value %))}) (get-key kv-client k prefix?)))
+  (mapv #(update % :value base64->clj) (get-key kv-client k prefix?)))
 
 (defn ^:private put-clj [^EtcdKvClient kv-client k m]
   (put-string kv-client k (clj->base64 m)))
@@ -75,7 +73,7 @@
     (put-clj (:kv-client this) key value))
 
   (get! [this key]
-    (get-clj (:kv-client this) key false))
+    (first (get-clj (:kv-client this) key false)))
 
   (get-prefix! [this key]
     (get-clj (:kv-client this) key true))
