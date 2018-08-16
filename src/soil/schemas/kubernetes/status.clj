@@ -1,4 +1,4 @@
-(ns soil.components.kubernetes.schema.status
+(ns soil.schemas.kubernetes.status
   (:require [schema.core :as s]))
 
 #_(s/defschema Status

@@ -21,7 +21,7 @@
    k8s-client :- protocols.k8s/KubernetesClient]
   )
 
-(s/defn create-services! :- models.application/Application
+(s/defn create-service! :- models.application/Application
   [application :- models.application/Application
    k8s-client :- protocols.k8s/KubernetesClient]
   )

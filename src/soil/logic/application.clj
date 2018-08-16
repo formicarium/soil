@@ -5,6 +5,16 @@
             [soil.models.application :as models.application]
             [soil.schemas.application :as schemas.application]))
 
+(s/defn get-container-interfaces :- [models.application/Interface]
+  [{:application/keys [interfaces]} :- models.application/Application
+   container :- models.application/Container]
+  (->> interfaces
+       (filter #(= (:container/name container) (:interface/container %)))))
+
+(s/defn get-tcp-interfaces :- [models.application/Interface]
+  [{:application/keys [interfaces]} :- models.application/Application]
+  (filter #(= (:interface/type %) :interface.type/tcp) interfaces))
+
 (s/defn hive-definition :- schemas.application/ApplicationDefinition
   [devspace :- s/Str
    config :- protocols.config/IConfig]

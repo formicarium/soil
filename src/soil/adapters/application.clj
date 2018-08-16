@@ -3,6 +3,8 @@
             [soil.schemas.application :as schemas.application]
             [soil.models.application :as models.application]
             [clj-service.protocols.config :as protocols.config]
+            [clj-service.exception :refer [server-error!]]
+            [soil.logic.application :as logic.application]
             [soil.logic.interface :as logic.interface]))
 
 (s/defn definition->application :- models.application/Application
@@ -16,18 +18,17 @@
                                                      :env   (:env %)}) (:containers app-definition))
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
-                                         {:devspace (:devspace app-definition)
-                                          :service  (:name app-definition)
-                                          :type     (keyword "interface.type" (name (:type %)))
-                                          :domain   domain})) (:interfaces app-definition))
+                                              {:devspace (:devspace app-definition)
+                                               :service  (:name app-definition)
+                                               :type     (keyword "interface.type" (name (:type %)))
+                                               :domain   domain})) (:interfaces app-definition))
                   :syncable?  (:syncable? app-definition)
                   :status     :application.status/template}))
 
-(s/defn application+container->ports :- [(s/pred map?)]
-  [{:application/keys [interfaces]} :- models.application/Application
+(s/defn application+container->container-ports :- [(s/pred map?)]
+  [application :- models.application/Application
    container :- models.application/Container]
-  (->> interfaces
-       (filter #(= (:container/name container) (:interface/container %)))
+  (->> (logic.application/get-container-interfaces application container)
        (mapv #(do {:name          (:interface/name %)
                    :containerPort (:interface/port %)}))))
 
@@ -36,7 +37,7 @@
   (mapv (fn [container]
           {:name  (:container/name container)
            :image (:container/image container)
-           :ports (application+container->ports application container)
+           :ports (application+container->container-ports application container)
            :env   (mapv #(do {:name  (name (key %))
                               :value (str (val %))}) (:container/env container))}) containers))
 
@@ -53,7 +54,17 @@
                   :template {:metadata {:labels {:app app-name}}
                              :spec     {:containers (application->containers application)}}}}))
 
-(s/defn application->services :- [(s/pred map?)]            ;; TODO: Write correctly
+(s/defn application+container->service-ports :- [(s/pred map?)]
+  [application :- models.application/Application
+   container :- models.application/Container]
+  (->> (logic.application/get-container-interfaces application container)
+       (mapv (fn [{:interface/keys [name port type]}]
+               {:protocol   (if (= type :interface.type/udp) "UDP" "TCP")
+                :name       name
+                :port       (if (= name "default") 80 port)
+                :targetPort name}))))
+
+(s/defn application->service :- (s/pred map?)
   [application :- models.application/Application]
   (let [app-name (:application/name application)]
     {:apiVersion "v1"
@@ -61,14 +72,21 @@
      :metadata   {:name      app-name
                   :labels    {:app app-name}
                   :namespace (:application/devspace application)}
-     :spec       {:ports    [{:protocol   "TCP"
-                              :name       "http"
-                              :port       80
-                              :targetPort "http"}]
+     :spec       {:ports    (->> (:application/containers application)
+                                 (mapv #(application+container->service-ports application %))
+                                 (flatten))
                   :selector {:app app-name}}}))
 
-(s/defn application->ingress :- (s/pred map?)               ;; TODO: Write correctly
-  [application :- models.application/Application]
+(s/defn application+interface->ingress-rule :- (s/pred map?)
+  [application :- models.application/Application
+   {:interface/keys [name host]} :- models.application/Interface]
+  {:host host
+   :http {:paths [{:backend {:serviceName (:application/name application)
+                             :servicePort name}
+                   :path    "/"}]}})
+
+(s/defn application->ingress :- (s/pred map?)
+  [{:application/keys [interfaces] :as application} :- models.application/Application]
   (let [app-name (:application/name application)]
     {:apiVersion "extensions/v1beta1"
      :kind       "Ingress"
@@ -76,11 +94,19 @@
                   :annotations {"kubernetes.io/ingress.class" "nginx"}
                   :labels      {:app app-name}
                   :namespace   (:application/devspace application)}
-     :spec       {:rules [{:host "kratos-other.carlos-rodrigues.domain.host"
-                           :http {:paths [{:backend {:serviceName "kratos-other"
-                                                     :servicePort "kratos-other"}
-                                           :path    "/"}]}}
-                          {:host "kratos.carlos-rodrigues.domain.host"
-                           :http {:paths [{:backend {:serviceName "kratos-api"
-                                                     :servicePort "kratos-api"}
-                                           :path    "/"}]}}]}}))
+     :spec       {:rules (->> interfaces
+                              (filter #(= (:interface/type %) :interface.type/http))
+                              (mapv (partial application+interface->ingress-rule application)))}}))
+
+(s/defn application->config-map :- (s/pred map?)
+  [ports :- [s/Int]
+   {:application/keys [devspace] :as application} :- models.application/Application]
+  (let [tcp-interfaces (logic.application/get-tcp-interfaces application)]
+    (if (>= (count ports)
+            (count tcp-interfaces))
+      {:data (->> tcp-interfaces
+                  (mapv #(str devspace "/" (:application/name application) ":" (:interface/port %)))
+                  (zipmap (map (comp keyword str) ports)))}
+      (server-error! (ex-info "Not enough available ports"
+                              {:ports          ports
+                               :tcp-interfaces tcp-interfaces})))))

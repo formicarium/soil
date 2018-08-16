@@ -1,4 +1,4 @@
-(ns soil.components.kubernetes.schema.common
+(ns soil.schemas.kubernetes.common
   (:require [schema.core :as s]))
 
 (def ApiVersion

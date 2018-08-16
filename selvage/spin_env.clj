@@ -1,17 +1,13 @@
 (ns spin-env
   (:require [selvage.flow :refer [flow *world*]]
             [midje.sweet :refer :all]
-            [clj-http.client :as http-client]
             [soil.component :as soil]
             [com.stuartsierra.component :as component]
             [cheshire.core :as cheshire]
             [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
+            [clj-service.test-helpers :as th]
             [io.pedestal.test :refer [response-for]]
-            [soil.routes :as service]
-            [soil.components.api.soil-api :as soil-api]
             [aero.core :as aero]
-            [beamly-core.config :as cfg]
 
             [clojure.java.io :as io])
   (:use org.httpkit.fake))
@@ -21,7 +17,7 @@
 
 (defn expose-service
   [world]
-  (assoc world :service-fn (get-in world [:system :soil-api :service ::http/service-fn])))
+  (assoc world :service-fn (th/get-pedestal-service (:system world))))
 
 (defn init!
   [world]
@@ -94,17 +90,17 @@
                                                                                        :body   (json->str service-configuration)}]
                                     (create-service-req! (:service-fn world)))))
 
-#_(flow "spin up a new devspace"
+(flow "spin up a new devspace"
     init!
     (fn [world] (let [service (:service-fn world)]
                   (assoc world :service-health (response-for service :get "/api/health"))))
     (fact "health must answer 200"
       (:service-health *world*) => (contains {:status 200
                                               :body   (json->str {:healthy true})}))
-    create-env!
-    (fact "devspace 'carlos' must have been created"
+    #_create-env!
+    #_(fact "devspace 'carlos' must have been created"
       (:env-created *world*) => (contains {:status 200
                                            :body   (json->str {:name "carlos"})}))
-    create-service!
-    (fact "service 'nginx' must be deployed"
+    #_create-service!
+    #_(fact "service 'nginx' must be deployed"
       (:services-deployed *world*) => (contains {:status 200})))

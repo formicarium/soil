@@ -1,12 +1,12 @@
 (ns soil.logic.services
   (:require [schema.core :as s]
             [soil.components.config-server-client :as protocols.config-server-client]
-            [soil.components.kubernetes.schema.deployment :as k8s-schema-deploy]
+            [soil.schemas.kubernetes.deployment :as schemas.kubernetes.deployment]
             [clj-service.protocols.config :as protocols.config]
             [soil.logic.interface :as logic.interface]))
 
 
-(s/defn config->deployment :- k8s-schema-deploy/Deployment
+(s/defn config->deployment :- schemas.kubernetes.deployment/Deployment
   [service-configuration namespace :- s/Str]
   (let [service-name (:name service-configuration)]
     {:apiVersion "apps/v1"

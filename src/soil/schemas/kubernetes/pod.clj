@@ -1,6 +1,6 @@
-(ns soil.components.kubernetes.schema.pod
+(ns soil.schemas.kubernetes.pod
   (:require [schema.core :as s]
-            [soil.components.kubernetes.schema.common :as c]))
+            [soil.schemas.kubernetes.common :as c]))
 
 (def HttpGet
   {(s/optional-key :host)        s/Str
