@@ -84,7 +84,7 @@
          (map (fn [devspace url] {devspace url}) devspaces-names)
          (reduce merge))))
 
-(s/defn delete-devspace
+(s/defn delete-devspace!
   [devspace :- s/Str
    k8s-client :- protocols.k8s/IKubernetesClient]
   (protocols.k8s/delete-namespace! k8s-client devspace))

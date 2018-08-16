@@ -37,7 +37,7 @@
 (defn delete-devspace
   [{{:keys [k8s-client]} :components
     devspace             :devspace-name}]
-  (controllers.devspace/delete-devspace devspace k8s-client)
+  (controllers.devspace/delete-devspace! devspace k8s-client)
   {:status 200
    :body   {}})
 

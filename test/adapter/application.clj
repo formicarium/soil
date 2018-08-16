@@ -35,7 +35,8 @@
                 :namespace "carlos-rodrigues"}
    :spec       {:selector {:matchLabels {:app "kratos"}}
                 :replicas 1
-                :template {:metadata {:labels    {:app "kratos"}}
+                :template {:metadata {:labels    {:app "kratos"}
+                                      :namespace "carlos-rodrigues"}
                            :spec     {:containers [{:name  "kratos"
                                                     :image "formicarium/chamber-lein:latest"
                                                     :ports [{:name          "default"

@@ -5,8 +5,8 @@
             [soil.logic.devspace :as logic.devspaces]
             [clj-service.test-helpers :as th]
             [clj-service.protocols.config :as protocols.config]
-            [soil.diplomat.kubernetes :as diplomat.kubernetes]))
-
+            [soil.diplomat.kubernetes :as diplomat.kubernetes]
+            [schema.core :as s]))
 #_(fact "Create devspace"
         (controllers.devspaces/create-devspace! {:name ..env-name..} ..config.. ..k8s-client..) => ..env-created..
         (provided
@@ -18,15 +18,15 @@
 (fact "List devspace"
       (controllers.devspaces/list-devspaces ..k8s-client.. ..config..)
       => {"bar" {:configServerUrl "http://config-server"
-                 :hiveApiUrl "http://hive.bar.formicarium.host"
-                 :hiveReplUrl "nrepl://hive.bar.formicarium.host:9001"
-                 :tanajuraApiUrl "http://tanajura.bar.formicarium.host"
-                 :tanajuraGitUrl "http://git.bar.formicarium.host"}
+                 :hiveApiUrl      "http://hive.bar.formicarium.host"
+                 :hiveReplUrl     "nrepl://hive.bar.formicarium.host:9001"
+                 :tanajuraApiUrl  "http://tanajura.bar.formicarium.host"
+                 :tanajuraGitUrl  "http://git.bar.formicarium.host"}
           "foo" {:configServerUrl "http://config-server"
-                 :hiveApiUrl "http://hive.foo.formicarium.host"
-                 :hiveReplUrl "nrepl://hive.foo.formicarium.host:9000"
-                 :tanajuraApiUrl "http://tanajura.foo.formicarium.host"
-                 :tanajuraGitUrl "http://git.foo.formicarium.host"}}
+                 :hiveApiUrl      "http://hive.foo.formicarium.host"
+                 :hiveReplUrl     "nrepl://hive.foo.formicarium.host:9000"
+                 :tanajuraApiUrl  "http://tanajura.foo.formicarium.host"
+                 :tanajuraGitUrl  "http://git.foo.formicarium.host"}}
       (provided
         (protocols.config/get-in! ..config.. [:formicarium :domain]) => "formicarium.host"
         (protocols.config/get-in! ..config.. [:config-server :url]) => "http://config-server"
@@ -36,8 +36,9 @@
                                                                                  :9002 "baz/hive:9898"}}
         (logic.devspaces/namespaces->devspaces ..ns-list..) => [{:name "foo"} {:name "bar"}]))
 
-(fact "Delete devspace"
-      (controllers.devspaces/delete-devspace ..env-name.. ..k8s-client..) => {:success true}
-      (provided
-        (protocols.k8s/delete-namespace! ..k8s-client.. ..env-name..) => irrelevant))
+(s/without-fn-validation
+  (fact "Delete devspace"
+        (controllers.devspaces/delete-devspace! ..env-name.. ..k8s-client..) => irrelevant
+        (provided
+          (protocols.k8s/delete-namespace! ..k8s-client.. ..env-name..) => irrelevant)))
 
