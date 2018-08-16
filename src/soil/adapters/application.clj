@@ -3,6 +3,7 @@
             [soil.schemas.application :as schemas.application]
             [soil.models.application :as models.application]
             [clj-service.protocols.config :as protocols.config]
+            [clj-service.exception :refer [server-error!]]
             [soil.logic.application :as logic.application]
             [soil.logic.interface :as logic.interface]))
 
@@ -106,5 +107,6 @@
       {:data (->> tcp-interfaces
                   (mapv #(str devspace "/" (:application/name application) ":" (:interface/port %)))
                   (zipmap (map (comp keyword str) ports)))}
-      (ex-info "Not enough available ports" {:ports          ports
-                                             :tcp-interfaces tcp-interfaces}))))
+      (server-error! (ex-info "Not enough available ports"
+                              {:ports          ports
+                               :tcp-interfaces tcp-interfaces})))))
