@@ -15,14 +15,14 @@
                   :devspace   (:devspace app-definition)
                   :containers (mapv #(do #:container{:name  (:name %)
                                                      :image (:image %)
-                                                     :env   (:env %)}) (:containers app-definition))
+                                                     :env   (:env %)
+                                                     :syncable? (:syncable? %)}) (:containers app-definition))
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
                                               {:devspace (:devspace app-definition)
                                                :service  (:name app-definition)
                                                :type     (keyword "interface.type" (name (:type %)))
                                                :domain   domain})) (:interfaces app-definition))
-                  :syncable?  (:syncable? app-definition)
                   :status     :application.status/template}))
 
 (s/defn application+container->container-ports :- [(s/pred map?)]
@@ -43,6 +43,7 @@
 
 (s/defn application->deployment :- (s/pred map?)
   [{:application/keys [devspace] :as application} :- models.application/Application]
+  (prn application)
   (let [app-name (:application/name application)]
     {:apiVersion "apps/v1"
      :kind       "Deployment"
@@ -51,7 +52,8 @@
                   :namespace devspace}
      :spec       {:selector {:matchLabels {:app app-name}}
                   :replicas 1
-                  :template {:metadata {:labels {:app app-name}}
+                  :template {:metadata {:labels    {:app app-name}
+                                        :namespace devspace}
                              :spec     {:containers (application->containers application)}}}}))
 
 (s/defn application+container->service-ports :- [(s/pred map?)]
@@ -110,3 +112,9 @@
       (server-error! (ex-info "Not enough available ports"
                               {:ports          ports
                                :tcp-interfaces tcp-interfaces})))))
+
+(s/defn application->urls :- schemas.application/ApplicationUrls
+  [application :- models.application/Application]
+  (->> (logic.application/get-non-tcp-interfaces application)
+       (mapv (fn [{:interface/keys [name host]}] {name host}))
+       (apply merge)))

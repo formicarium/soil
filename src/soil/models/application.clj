@@ -3,6 +3,7 @@
 
 (s/defschema Container #:container{:name  s/Str
                                    :image s/Str
+                                   :syncable?  s/Bool
                                    :env   {s/Str s/Str}})
 
 (s/defschema InterfaceType (s/enum :interface.type/http :interface.type/tcp :interface.type/udp))
@@ -23,5 +24,4 @@
                                        :devspace   s/Str
                                        :containers [Container]
                                        :interfaces [Interface]
-                                       :syncable?  s/Bool
                                        :status     ApplicationStatus})

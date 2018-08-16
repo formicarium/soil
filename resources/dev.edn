@@ -3,4 +3,5 @@
          :env           "dev"
          :config-server {:url "http://localhost:8081"}
          :kubernetes    {:proxy {:url "http://localhost:9000"}}
-         :formicarium   {:domain "formicarium.host"}}]
+         :formicarium   {:domain "formicarium.host"}
+         :skip-kubectl-proxy false}]

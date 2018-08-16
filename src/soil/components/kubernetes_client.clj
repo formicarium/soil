@@ -50,6 +50,7 @@
 (s/defn create-deployment-impl!
   [ctx :- KubernetesContext
    deployment :- schemas.kubernetes.deployment/Deployment]
+  (prn deployment)
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
          {:namespace (get-in deployment [:metadata :namespace])})))
 

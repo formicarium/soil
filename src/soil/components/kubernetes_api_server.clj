@@ -6,7 +6,7 @@
 (defrecord KubernetesApiServer [config]
   component/Lifecycle
   (start [this]
-    (if (protocols.config/get-in! config [:skip-kubectl-proxy])
+    (if (protocols.config/get-maybe config :skip-kubectl-proxy)
       this
       (assoc this :api-server (sh/proc "kubectl" "proxy" "--port=9000"))))
   (stop [this]

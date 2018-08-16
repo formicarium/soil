@@ -3,6 +3,7 @@
             [soil.adapters.devspace :as adapters.devspace]
             [clojure.set :refer [difference]]
             [schema.core :as s]
+            [soil.adapters.application :as adapters.application]
             [soil.models.application :as models.application]))
 
 (def tcp-ports (map str (range 4000 5000)))
@@ -16,20 +17,23 @@
        (protocols.k8s/create-namespace! k8s-client))
   namespace-name)
 
-(s/defn create-deployment! :- models.application/Application
+(s/defn create-deployment!
   [application :- models.application/Application
    k8s-client :- protocols.k8s/KubernetesClient]
-  )
+  (->> (adapters.application/application->deployment application)
+       (protocols.k8s/create-deployment! k8s-client)))
 
-(s/defn create-service! :- models.application/Application
+(s/defn create-service!
   [application :- models.application/Application
    k8s-client :- protocols.k8s/KubernetesClient]
-  )
+  (->> (adapters.application/application->service application)
+       (protocols.k8s/create-service! k8s-client)))
 
-(s/defn create-ingress! :- models.application/Application
+(s/defn create-ingress!
   [application :- models.application/Application
    k8s-client :- protocols.k8s/KubernetesClient]
-  )
+  (->> (adapters.application/application->ingress application)
+       (protocols.k8s/create-ingress! k8s-client)))
 
 (defn get-tcp-available-ports
   [num k8s-client]

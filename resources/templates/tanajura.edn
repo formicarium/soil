@@ -1,8 +1,8 @@
 {:name       "tanajura"
  :devspace   "{{devspace}}"
- :syncable?  false
  :containers [{:name  "tanajura"
                :image "formicarium/tanajura:1.7.0"
+               :syncable?  false
                :env   {}}]
  :interfaces [{:name      :default
                :port      3002

@@ -6,9 +6,11 @@
                                     :devspace   s/Str
                                     :containers [{:name  s/Str
                                                   :image s/Str
+                                                  :syncable? s/Bool
                                                   :env   (s/pred map?)}]
                                     :interfaces [{:name      s/Str
                                                   :port      s/Int
                                                   :container s/Str
-                                                  :type      InterfaceType}]
-                                    :syncable?  s/Bool})
+                                                  :type      InterfaceType}]})
+
+(s/defschema ApplicationUrls {s/Keyword s/Str})

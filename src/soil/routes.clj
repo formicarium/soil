@@ -9,7 +9,9 @@
             [clj-service.pedestal.interceptors.schema :as int-schema]
             [io.pedestal.http.route :as route]
             [schema.core :as s]
-            [soil.config :as config]))
+            [soil.config :as config]
+            [soil.adapters.application :as adapters.application]
+            [soil.adapters.devspace :as adapters.devspace]))
 
 (defn get-health [_]
   {:status 200
@@ -28,21 +30,24 @@
 (defn create-devspace
   [{{:keys [config k8s-client]} :components
     {devspace-name :name}       :data}]
-  {:status 200
-   :body   (controllers.devspace/create-devspace! devspace-name config k8s-client)})
+  {:status 201
+   :body   (-> (controllers.devspace/create-devspace! devspace-name config k8s-client)
+               adapters.devspace/internal->wire)})
 
 (defn delete-devspace
   [{{:keys [k8s-client]} :components
     devspace             :devspace-name}]
+  (controllers.devspace/delete-devspace devspace k8s-client)
   {:status 200
-   :body   (controllers.devspace/delete-devspace devspace k8s-client)})
+   :body   {}})
 
 (defn deploy-service
   [{{:keys [k8s-client config-server config]} :components
-    body                                      :json-params
+    service-deploy                            :json-params
     devspace-name                             :devspace-name}]
   {:status 200
-   :body   (controllers.service/deploy-service! body devspace-name k8s-client config-server config)})
+   :body   (-> (controllers.service/create-service! service-deploy devspace-name config k8s-client config-server)
+               adapters.application/application->urls)})
 
 (defn delete-service
   [{{:keys [k8s-client]} :components
@@ -63,10 +68,9 @@
          ["/version" {:get [:get-version get-version]}]
 
          ["/devspaces"
-          {:get  [:get-devspaces
-                  ^:interceptors [(int-schema/coerce schemas.devspace/CreateDevspace)]
-                  get-devspaces]
-           :post [:create-devspace create-devspace]}
+          {:get  [:get-devspaces get-devspaces]
+           :post [:create-devspace ^:interceptors [(int-schema/coerce schemas.devspace/CreateDevspace)]
+                  create-devspace]}
 
           ["/:devspace-name" ^:interceptors [(int-adapt/coerce-path :devspace-name s/Str)]
            {:delete [:delete-devspaces delete-devspace]}

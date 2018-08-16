@@ -1,6 +1,6 @@
 (ns soil.controllers.devspaces
   (:require [soil.protocols.kubernetes-client :as protocols.k8s]
-            [soil.controllers.services :as controllers.services]
+            [soil.models.devspace :as models.devspace]
             [soil.logic.devspace :as logic.devspace]
             [soil.logic.services :as logic.service]
             [soil.adapters.application :as adapters.application]
@@ -9,6 +9,7 @@
             [schema.core :as s]
             [selmer.parser]
             [soil.models.application :as models.application]
+            [soil.controllers.application :as controllers.application]
             [clojure.java.io :as io]))
 
 (s/defn ^:private load-application-template :- models.application/Application
@@ -32,16 +33,19 @@
    config :- protocols.config/Config]
   (load-application-template "tanajura" {:devspace devspace} config))
 
-(s/defn create-devspace!
+(s/defn create-devspace! :- models.devspace/Devspace
   [devspace-name :- s/Str
    config :- protocols.config/IConfig
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
-  (merge
-    (controllers.services/create-kubernetes-resources! (logic.service/hive->kubernetes devspace-name config)
-      k8s-client)
-    (controllers.services/create-kubernetes-resources! (logic.service/tanajura->kubernetes devspace-name config)
-      k8s-client)))
+  (let [hive-app (hive-application devspace-name config)
+        tanajura-app (tanajura-application devspace-name config)]
+    (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
+    (controllers.application/create-application! hive-app k8s-client)
+    (controllers.application/create-application! tanajura-app k8s-client)
+    #:devspace{:name         devspace-name
+               :hive         hive-app
+               :tanajura     tanajura-app
+               :applications []}))
 
 (defn hive-api-url [domain devspace]
   (str "http://hive." devspace "." domain))
@@ -64,9 +68,9 @@
 
 (defn list-devspaces
   [k8s-client config]
-  (let [top-level       (protocols.config/get-in! config [:formicarium :domain])
-        devspaces       (->> (protocols.k8s/list-namespaces k8s-client)
-                             logic.devspace/namespaces->devspaces)
+  (let [top-level (protocols.config/get-in! config [:formicarium :domain])
+        devspaces (->> (protocols.k8s/list-namespaces k8s-client)
+                       logic.devspace/namespaces->devspaces)
         devspaces-names (map :name devspaces)]
     (->> devspaces
          (reduce (fn [acc {:keys [name]}] (conj acc name)) [])
@@ -80,8 +84,8 @@
          (map (fn [devspace url] {devspace url}) devspaces-names)
          (reduce merge))))
 
-(defn delete-devspace
-  [devspace k8s-client]
-  (do (protocols.k8s/delete-namespace! k8s-client devspace)
-      {:success true}))
+(s/defn delete-devspace
+  [devspace :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (protocols.k8s/delete-namespace! k8s-client devspace))
 

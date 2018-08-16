@@ -11,6 +11,7 @@
                  :status     :application.status/template
                  :containers [#:container {:name  "kratos"
                                            :image "formicarium/chamber-lein:latest"
+                                           :syncable?  true
                                            :env   {"STARTUP_CLONE"   "true"
                                                    "STINGER_PORT"    "24000"
                                                    "APP_PATH"        "/app"
@@ -24,8 +25,7 @@
                                            :port      35000
                                            :type      :interface.type/tcp
                                            :container "kratos"
-                                           :host      "kratos-repl.carlos-rodrigues.formicarium.host"}]
-                 :syncable?  true})
+                                           :host      "kratos-repl.carlos-rodrigues.formicarium.host"}]})
 
 (def kratos-deployment
   {:apiVersion "apps/v1"
