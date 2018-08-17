@@ -13,16 +13,16 @@
   (let [domain (protocols.config/get-in! config [:formicarium :domain])]
     #:application{:name       (:name app-definition)
                   :devspace   (:devspace app-definition)
-                  :containers (mapv #(do #:container{:name  (:name %)
-                                                     :image (:image %)
-                                                     :env   (:env %)
+                  :containers (mapv #(do #:container{:name      (:name %)
+                                                     :image     (:image %)
+                                                     :env       (:env %)
                                                      :syncable? (:syncable? %)}) (:containers app-definition))
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
-                                              {:devspace (:devspace app-definition)
-                                               :service  (:name app-definition)
-                                               :type     (keyword "interface.type" (name (:type %)))
-                                               :domain   domain})) (:interfaces app-definition))
+                                         {:devspace (:devspace app-definition)
+                                          :service  (:name app-definition)
+                                          :type     (keyword "interface.type" (name (:type %)))
+                                          :domain   domain})) (:interfaces app-definition))
                   :status     :application.status/template}))
 
 (s/defn application+container->container-ports :- [(s/pred map?)]
@@ -105,16 +105,25 @@
    {:application/keys [devspace] :as application} :- models.application/Application]
   (let [tcp-interfaces (logic.application/get-tcp-interfaces application)]
     (if (>= (count ports)
-            (count tcp-interfaces))
+          (count tcp-interfaces))
       {:data (->> tcp-interfaces
                   (mapv #(str devspace "/" (:application/name application) ":" (:interface/port %)))
                   (zipmap (map (comp keyword str) ports)))}
       (server-error! (ex-info "Not enough available ports"
-                              {:ports          ports
-                               :tcp-interfaces tcp-interfaces})))))
+                       {:ports          ports
+                        :tcp-interfaces tcp-interfaces})))))
 
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
   (->> (logic.application/get-non-tcp-interfaces application)
        (mapv (fn [{:interface/keys [name host]}] {name host}))
        (apply merge)))
+
+(s/defn application-key :- s/Str
+  [devspace :- s/Str
+   app-name :- s/Str]
+  (clojure.string/join "/" ["applications" devspace app-name]))
+
+(s/defn application->key :- s/Str
+  [{:application/keys [devspace name]} :- models.application/Application]
+  (application-key devspace name))

@@ -6,3 +6,5 @@
                                  :hive         models.application/Application
                                  :tanajura     models.application/Application
                                  :applications [models.application/Application]})
+
+(s/defschema PersistentDevspace #:devspace {:name s/Str})

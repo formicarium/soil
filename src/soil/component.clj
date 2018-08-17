@@ -6,6 +6,7 @@
             [clj-service.components.webapp :as components.webapp]
             [soil.components.kubernetes-client :as components.kubernetes-client]
             [soil.components.kubernetes-api-server :as components.kubernetes-api-server]
+            [soil.components.etcd :as components.etcd]
             [soil.components.config-server-client :as components.config-server-client]))
 
 (defn base [env]
@@ -13,6 +14,7 @@
    :config-server  (component/using (components.config-server-client/new-config-server) [:config])
    :k8s-api-server (component/using (components.kubernetes-api-server/new-k8s-api-server) [:config])
    :k8s-client     (component/using (components.kubernetes-client/new-k8s-client) [:config :k8s-api-server])
+   :etcd           (component/using (components.etcd/new-etcd) [:config])
    :webapp         (component/using (components.webapp/new-webapp) [:config :config-server :k8s-client])
    :pedestal       (component/using (components.pedestal/new-pedestal #'routes/routes) [:config :webapp])})
 

@@ -27,11 +27,11 @@
   {:status 200
    :body   (controllers.devspace/list-devspaces k8s-client config)})
 
-(defn create-devspace
-  [{{:keys [config k8s-client]} :components
+(defn create-devspace!
+  [{{:keys [config k8s-client etcd]} :components
     {devspace-name :name}       :data}]
   {:status 201
-   :body   (-> (controllers.devspace/create-devspace! devspace-name config k8s-client)
+   :body   (-> (controllers.devspace/create-devspace! devspace-name config etcd k8s-client)
                adapters.devspace/internal->wire)})
 
 (defn delete-devspace
@@ -70,7 +70,7 @@
          ["/devspaces"
           {:get  [:get-devspaces get-devspaces]
            :post [:create-devspace ^:interceptors [(int-schema/coerce schemas.devspace/CreateDevspace)]
-                  create-devspace]}
+                  create-devspace!]}
 
           ["/:devspace-name" ^:interceptors [(int-adapt/coerce-path :devspace-name s/Str)]
            {:delete [:delete-devspaces delete-devspace]}

@@ -19,3 +19,15 @@
       (update :hive adapters.application/application->urls)
       (update :tanajura adapters.application/application->urls)
       (update :applications #(mapv adapters.application/application->urls %))))
+
+(s/defn devspace->key :- s/Str
+  [{:devspace/keys [name]} :- models.devspace/PersistentDevspace]
+  (str "devspaces/" name))
+
+(s/defn devspace-name->key :- s/Str
+  [devspace-name :- s/Str]
+  (str "devspaces/" devspace-name))
+
+(s/defn devspace-name->persistent :- models.devspace/PersistentDevspace
+  [devspace-name :- s/Str]
+  #:devspace{:name devspace-name})

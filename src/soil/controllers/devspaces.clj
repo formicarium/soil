@@ -10,7 +10,10 @@
             [selmer.parser]
             [soil.models.application :as models.application]
             [soil.controllers.application :as controllers.application]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [soil.db.etcd.devspace :as etcd.devspace]
+            [soil.db.etcd.application :as etcd.application]
+            [soil.protocols.etcd :as protocols.etcd]))
 
 (s/defn ^:private load-application-template :- models.application/Application
   [name :- s/Str
@@ -36,12 +39,14 @@
 (s/defn create-devspace! :- models.devspace/Devspace
   [devspace-name :- s/Str
    config :- protocols.config/IConfig
+   etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s/IKubernetesClient]
   (let [hive-app (hive-application devspace-name config)
         tanajura-app (tanajura-application devspace-name config)]
     (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
-    (controllers.application/create-application! hive-app k8s-client)
-    (controllers.application/create-application! tanajura-app k8s-client)
+    (etcd.devspace/create-devspace! devspace-name etcd)
+    (controllers.application/create-application! hive-app etcd k8s-client)
+    (controllers.application/create-application! tanajura-app etcd k8s-client)
     #:devspace{:name         devspace-name
                :hive         hive-app
                :tanajura     tanajura-app

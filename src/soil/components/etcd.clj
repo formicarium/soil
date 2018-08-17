@@ -44,10 +44,13 @@
                                     .sync)]
     (mapv #(do {:key   (-> % .getKey byte-string->str keyword)
                 :value (-> % .getValue byte-string->str)})
-          (into [] (.getKvsList response)))))
+      (into [] (.getKvsList response)))))
 
 (defn ^:private delete-key [^EtcdKvClient kv-client k]
   (.sync (.delete kv-client (str->byte-string (name k)))))
+
+(defn ^:private delete-prefix-key [^EtcdKvClient kv-client k]
+  (.sync (.asPrefix (.delete kv-client (str->byte-string (name k))))))
 
 (defn ^:private get-clj [^EtcdKvClient kv-client k prefix?]
   (mapv #(update % :value base64->clj) (get-key kv-client k prefix?)))
@@ -60,7 +63,7 @@
   (start [this]
     (let [{:keys [port endpoint]} (protocols.config/get! config :etcd)
           etcd-client (-> (EtcdClient/forEndpoint endpoint port) .withPlainText .build)
-          kv-client (.getKvClient etcd-client)]
+          kv-client   (.getKvClient etcd-client)]
       (assoc this :etcd-client etcd-client
                   :kv-client kv-client)))
   (stop [this]
@@ -79,7 +82,10 @@
     (get-clj (:kv-client this) key true))
 
   (delete! [this key]
-    (delete-key (:kv-client this) key)))
+    (delete-key (:kv-client this) key))
+
+  (delete-prefix! [this key]
+    (delete-prefix-key (:kv-client this) key)))
 
 (defn new-etcd []
   (map->Etcd {}))
