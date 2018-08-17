@@ -15,7 +15,7 @@
    :k8s-api-server (component/using (components.kubernetes-api-server/new-k8s-api-server) [:config])
    :k8s-client     (component/using (components.kubernetes-client/new-k8s-client) [:config :k8s-api-server])
    :etcd           (component/using (components.etcd/new-etcd) [:config])
-   :webapp         (component/using (components.webapp/new-webapp) [:config :config-server :k8s-client])
+   :webapp         (component/using (components.webapp/new-webapp) [:config :config-server :k8s-client :etcd])
    :pedestal       (component/using (components.pedestal/new-pedestal #'routes/routes) [:config :webapp])})
 
 (defn test-system [env]

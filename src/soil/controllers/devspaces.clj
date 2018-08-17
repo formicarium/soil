@@ -91,6 +91,9 @@
 
 (s/defn delete-devspace!
   [devspace :- s/Str
+   etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (protocols.k8s/delete-namespace! k8s-client devspace))
+  (protocols.k8s/delete-namespace! k8s-client devspace)
+  (etcd.devspace/delete-devspace! devspace etcd)
+  (etcd.application/delete-all-applications! devspace etcd))
 

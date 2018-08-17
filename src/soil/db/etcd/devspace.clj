@@ -17,3 +17,9 @@
 (s/defn list-persistent-devspaces! :- [models.devspace/PersistentDevspace]
   [etcd :- protocols.etcd/IEtcd]
   (protocols.etcd/get-prefix! etcd "devspaces/"))
+
+
+(s/defn delete-devspace!
+  [devspace-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  (protocols.etcd/delete-prefix! etcd (adapters.devspace/devspace-name->key devspace-name)))

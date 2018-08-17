@@ -29,32 +29,32 @@
 
 (defn create-devspace!
   [{{:keys [config k8s-client etcd]} :components
-    {devspace-name :name}       :data}]
+    {devspace-name :name}            :data}]
   {:status 201
    :body   (-> (controllers.devspace/create-devspace! devspace-name config etcd k8s-client)
                adapters.devspace/internal->wire)})
 
-(defn delete-devspace
-  [{{:keys [k8s-client]} :components
-    devspace             :devspace-name}]
-  (controllers.devspace/delete-devspace! devspace k8s-client)
+(defn delete-devspace!
+  [{{:keys [k8s-client etcd]} :components
+    devspace                  :devspace-name}]
+  (controllers.devspace/delete-devspace! devspace etcd k8s-client)
   {:status 200
    :body   {}})
 
-(defn deploy-service
-  [{{:keys [k8s-client config-server config]} :components
-    service-deploy                            :json-params
-    devspace-name                             :devspace-name}]
+(defn create-service!
+  [{{:keys [k8s-client config-server config etcd]} :components
+    service-deploy                                 :json-params
+    devspace-name                                  :devspace-name}]
   {:status 200
-   :body   (-> (controllers.service/create-service! service-deploy devspace-name config k8s-client config-server)
+   :body   (-> (controllers.service/create-service! service-deploy devspace-name config etcd k8s-client config-server)
                adapters.application/application->urls)})
 
-(defn delete-service
-  [{{:keys [k8s-client]} :components
-    devspace-name        :devspace-name
-    service-name         :service-name}]
+(defn delete-service!
+  [{{:keys [k8s-client etcd]} :components
+    devspace-name             :devspace-name
+    service-name              :service-name}]
   {:status 200
-   :body   (controllers.service/destroy-service! service-name devspace-name k8s-client)})
+   :body   (controllers.service/delete-service! service-name devspace-name etcd k8s-client)})
 
 (def routes
   (route/expand-routes
@@ -73,13 +73,13 @@
                   create-devspace!]}
 
           ["/:devspace-name" ^:interceptors [(int-adapt/coerce-path :devspace-name s/Str)]
-           {:delete [:delete-devspaces delete-devspace]}
+           {:delete [:delete-devspace delete-devspace!]}
 
            ["/services"
             {:post [:deploy-service
                     ^:interceptors [(int-schema/coerce schemas.service/DeployService)]
-                    deploy-service]}
+                    create-service!]}
 
             ["/:service-name" ^:interceptors [(int-adapt/coerce-path :service-name s/Str)]
-             {:delete [:delete-service delete-service]}]]]]]]]]))
+             {:delete [:delete-service delete-service!]}]]]]]]]]))
 

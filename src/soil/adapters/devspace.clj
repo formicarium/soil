@@ -24,6 +24,10 @@
   [{:devspace/keys [name]} :- models.devspace/PersistentDevspace]
   (str "devspaces/" name))
 
+(s/defn devspace-name->application-prefix
+  [devspace-name :- s/Str]
+  (clojure.string/join "." ["applications" devspace-name ""]))
+
 (s/defn devspace-name->key :- s/Str
   [devspace-name :- s/Str]
   (str "devspaces/" devspace-name))
