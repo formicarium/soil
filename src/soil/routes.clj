@@ -46,14 +46,22 @@
   [{{:keys [k8s-client]} :components
     devspace             :devspace-name}]
   (controllers.devspace/delete-devspace! devspace k8s-client)
-  {:status 200
+  {:status 202
    :body   {}})
+
+(defn one-service
+  [{{:keys [etcd]} :components
+    devspace-name  :devspace-name
+    service-name   :service-name}]
+  {:status 200
+   :body   (-> (controllers.service/one-service devspace-name service-name etcd)
+               adapters.application/application->urls)})
 
 (defn deploy-service
   [{{:keys [k8s-client config-server config]} :components
     service-deploy                            :json-params
     devspace-name                             :devspace-name}]
-  {:status 200
+  {:status 201
    :body   (-> (controllers.service/create-service! service-deploy devspace-name config k8s-client config-server)
                adapters.application/application->urls)})
 
@@ -61,7 +69,7 @@
   [{{:keys [k8s-client]} :components
     devspace-name        :devspace-name
     service-name         :service-name}]
-  {:status 200
+  {:status 202
    :body   (controllers.service/destroy-service! service-name devspace-name k8s-client)})
 
 (def routes
@@ -81,8 +89,8 @@
                   create-devspace!]}
 
           ["/:devspace-name" ^:interceptors [(int-adapt/coerce-path :devspace-name s/Str)]
-           {:delete [:delete-devspaces delete-devspace]
-            :get    [:one-devspace one-devspace]}
+           {:get    [:one-devspace one-devspace]
+            :delete [:delete-devspaces delete-devspace]}
 
            ["/services"
             {:post [:deploy-service
@@ -90,5 +98,6 @@
                     deploy-service]}
 
             ["/:service-name" ^:interceptors [(int-adapt/coerce-path :service-name s/Str)]
-             {:delete [:delete-service delete-service]}]]]]]]]]))
+             {:get    [:one-service one-service]
+              :delete [:delete-service delete-service]}]]]]]]]]))
 

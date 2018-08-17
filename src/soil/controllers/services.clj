@@ -7,7 +7,9 @@
             [soil.models.application :as models.application]
             [soil.logic.application :as logic.application]
             [soil.schemas.service :as schemas.service]
-            [soil.controllers.application :as controllers.application]))
+            [soil.controllers.application :as controllers.application]
+            [soil.protocols.etcd :as protocols.etcd]
+            [soil.db.etcd.application :as etcd.application]))
 
 (s/defn create-service! :- models.application/Application
   [service-deploy :- schemas.service/DeployService,
@@ -30,3 +32,9 @@
    :service      (do (protocols.k8s-client/delete-service! k8s-client service-name devspace) "deleted")
    :ingress      (do (protocols.k8s-client/delete-ingress! k8s-client service-name devspace) "deleted")
    :tcp-services (do #_(diplomat.kubernetes/delete-tcp-ports [service-name] k8s-client) "deleted")})
+
+(s/defn one-service :- models.application/Application
+  [devspace-name :- s/Str
+   service-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  (:value (etcd.application/get-application! devspace-name service-name etcd)))
