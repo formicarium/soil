@@ -1,4 +1,4 @@
-{:soil               {:version "0.0.9"}
+{:soil               {:version "0.1.0"}
  :hive               {:version "1f09933bdde4ac685934b09bd3d34309e965a76c"
                       :image   "formicarium/hive:1f09933bdde4ac685934b09bd3d34309e965a76c"}
  :tanajura           {:version "1.7.0"
