@@ -5,4 +5,4 @@
          :formicarium        {:domain "formicarium.host"}
          :etcd               {:endpoint "fmc-etcd-client"
                               :port     2379}
-         :skip-kubectl-proxy true}]
+         :skip-kubectl-proxy false}]
