@@ -12,8 +12,8 @@
   application)
 
 (s/defn get-application! :- models.application/Application
-  [application-name :- s/Str
-   devspace :- s/Str
+  [devspace :- s/Str
+   application-name :- s/Str
    etcd :- protocols.etcd/IEtcd]
   (protocols.etcd/get! etcd (adapters.application/application-key devspace application-name)))
 

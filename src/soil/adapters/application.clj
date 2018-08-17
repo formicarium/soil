@@ -19,10 +19,10 @@
                                                      :syncable? (:syncable? %)}) (:containers app-definition))
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
-                                         {:devspace (:devspace app-definition)
-                                          :service  (:name app-definition)
-                                          :type     (keyword "interface.type" (name (:type %)))
-                                          :domain   domain})) (:interfaces app-definition))
+                                              {:devspace (:devspace app-definition)
+                                               :service  (:name app-definition)
+                                               :type     (keyword "interface.type" (name (:type %)))
+                                               :domain   domain})) (:interfaces app-definition))
                   :status     :application.status/template}))
 
 (s/defn application+container->container-ports :- [(s/pred map?)]
@@ -118,6 +118,12 @@
   (->> (logic.application/get-non-tcp-interfaces application)
        (mapv (fn [{:interface/keys [name host]}] {name host}))
        (apply merge)))
+
+(s/defn internal->wire :- schemas.application/Application
+  [application :- models.application/Application]
+  {:name     (:application/name application)
+   :devspace (:application/devspace application)
+   :links    (application->urls application)})
 
 (s/defn application-key :- s/Str
   [devspace :- s/Str

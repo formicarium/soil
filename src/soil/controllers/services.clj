@@ -43,3 +43,9 @@
    :service      (try-delete protocols.k8s-client/delete-service! service-name devspace k8s-client)
    :ingress      (try-delete protocols.k8s-client/delete-ingress! service-name devspace k8s-client)
    :tcp-services "not-yet-implemented"})
+
+(s/defn one-service :- models.application/Application
+  [devspace-name :- s/Str
+   service-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  (:value (etcd.application/get-application! devspace-name service-name etcd)))

@@ -22,7 +22,7 @@
   [{:keys [name port type devspace container service domain]
     :or   {name "default"
            type :interface.type/http}}]
-  #:interface{:name      (calc-name service name)
+  #:interface{:name      name
               :port      port
               :type      type
               :container container

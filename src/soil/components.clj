@@ -1,4 +1,4 @@
-(ns soil.component
+(ns soil.components
   (:require [com.stuartsierra.component :as component]
             [soil.routes :as routes]
             [clj-service.components.pedestal :as components.pedestal]

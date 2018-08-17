@@ -23,9 +23,17 @@
    :body   {:version (config/version config)}})
 
 (defn get-devspaces
-  [{{:keys [config k8s-client]} :components}]
+  [{{:keys [etcd]} :components}]
   {:status 200
-   :body   (controllers.devspace/list-devspaces k8s-client config)})
+   :body   (->> (controllers.devspace/get-devspaces etcd)
+                (mapv adapters.devspace/internal->wire))})
+
+(defn one-devspace
+  [{{:keys [etcd]} :components
+    devspace-name  :devspace-name}]
+  {:status 200
+   :body   (->> (controllers.devspace/one-devspace devspace-name etcd)
+                adapters.devspace/internal->wire)})
 
 (defn create-devspace!
   [{{:keys [config k8s-client etcd]} :components
@@ -56,6 +64,14 @@
   {:status 200
    :body   (controllers.service/delete-service! service-name devspace-name etcd k8s-client)})
 
+(defn one-service
+  [{{:keys [etcd]} :components
+    devspace-name  :devspace-name
+    service-name   :service-name}]
+  {:status 200
+   :body   (-> (controllers.service/one-service devspace-name service-name etcd)
+               adapters.application/internal->wire)})
+
 (def routes
   (route/expand-routes
     `[[["/" ^:interceptors [int-err/catch!
@@ -73,13 +89,14 @@
                   create-devspace!]}
 
           ["/:devspace-name" ^:interceptors [(int-adapt/coerce-path :devspace-name s/Str)]
-           {:delete [:delete-devspace delete-devspace!]}
-
+           {:get    [:one-devspace one-devspace]
+            :delete [:delete-devspace delete-devspace!]}
            ["/services"
             {:post [:deploy-service
                     ^:interceptors [(int-schema/coerce schemas.service/DeployService)]
                     create-service!]}
 
             ["/:service-name" ^:interceptors [(int-adapt/coerce-path :service-name s/Str)]
-             {:delete [:delete-service delete-service!]}]]]]]]]]))
+             {:get    [:one-service one-service]
+              :delete [:delete-service delete-service!]}]]]]]]]]))
 
