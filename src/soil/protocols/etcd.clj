@@ -2,6 +2,7 @@
 
 (defprotocol Etcd
   (put! [this key value])
+  (get-maybe [this key])
   (get! [this key])
   (get-prefix! [this key])
   (delete! [this key])

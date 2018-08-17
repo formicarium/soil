@@ -5,6 +5,6 @@
 (s/defschema CreateDevspace {:name s/Str})
 
 (s/defschema Devspace {:name         s/Str
-                       :hive         schemas.application/ApplicationUrls
-                       :tanajura     schemas.application/ApplicationUrls
-                       :applications [schemas.application/ApplicationUrls]})
+                       :hive         schemas.application/Application
+                       :tanajura     schemas.application/Application
+                       :applications [schemas.application/Application]})
