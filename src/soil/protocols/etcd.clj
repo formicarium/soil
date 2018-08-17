@@ -5,3 +5,5 @@
   (get! [this key])
   (get-prefix! [this key])
   (delete! [this key]))
+
+(def IEtcd (:on-interface Etcd))
