@@ -40,7 +40,7 @@
    config :- protocols.config/IConfig
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (let [hive-app (hive-application devspace-name config)
+  (let [hive-app     (hive-application devspace-name config)
         tanajura-app (tanajura-application devspace-name config)]
     (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
     (etcd.devspace/create-devspace! devspace-name etcd)
@@ -54,6 +54,11 @@
 (s/defn get-devspaces :- [models.devspace/Devspace]
   [etcd :- protocols.etcd/IEtcd]
   (etcd.devspace/get-devspaces etcd))
+
+(s/defn one-devspace :- models.devspace/Devspace
+  [devspace-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  (etcd.devspace/get-devspace devspace-name etcd))
 
 (s/defn delete-devspace!
   [devspace :- s/Str

@@ -28,6 +28,13 @@
    :body   (->> (controllers.devspace/get-devspaces etcd)
                 (mapv adapters.devspace/internal->wire))})
 
+(defn one-devspace
+  [{{:keys [etcd]} :components
+    devspace-name  :devspace-name}]
+  {:status 200
+   :body   (->> (controllers.devspace/one-devspace devspace-name etcd)
+                adapters.devspace/internal->wire)})
+
 (defn create-devspace!
   [{{:keys [config k8s-client etcd]} :components
     {devspace-name :name}            :data}]
@@ -74,7 +81,8 @@
                   create-devspace!]}
 
           ["/:devspace-name" ^:interceptors [(int-adapt/coerce-path :devspace-name s/Str)]
-           {:delete [:delete-devspaces delete-devspace]}
+           {:delete [:delete-devspaces delete-devspace]
+            :get    [:one-devspace one-devspace]}
 
            ["/services"
             {:post [:deploy-service

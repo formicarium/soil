@@ -11,16 +11,23 @@
     (adapters.devspace/devspace-name->key devspace-name)
     (adapters.devspace/devspace-name->persistent devspace-name)))
 
+(s/defn persistent-devspace->devspace :- models.devspace/Devspace
+  [{:devspace/keys [name] :as devspace} :- models.devspace/PersistentDevspace
+   etcd :- protocols.etcd/IEtcd]
+  (->> (str "applications/" name)
+       (protocols.etcd/get-prefix! etcd)
+       (mapv :value)
+       (adapters.devspace/persistent+applications->internal devspace)))
+
 (s/defn get-devspaces :- [models.devspace/Devspace]
   [etcd :- protocols.etcd/IEtcd]
   (->> (protocols.etcd/get-prefix! etcd "devspaces")
        (mapv :value)
-       (mapv (fn [{:devspace/keys [name] :as devspace}]
-               (->> (str "applications/" name)
-                    (protocols.etcd/get-prefix! etcd)
-                    (mapv :value)
-                    (adapters.devspace/persistent+applications->internal devspace))))))
+       (mapv #(persistent-devspace->devspace % etcd))))
 
-(s/defn list-persistent-devspaces! :- [models.devspace/PersistentDevspace]
-  [etcd :- protocols.etcd/IEtcd]
-  (protocols.etcd/get-prefix! etcd "devspaces/"))
+(s/defn get-devspace :- models.devspace/Devspace
+  [devspace-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  (-> (protocols.etcd/get! etcd (adapters.devspace/devspace-name->key devspace-name))
+      :value
+      (persistent-devspace->devspace etcd)))
