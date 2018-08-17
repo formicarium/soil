@@ -1,4 +1,5 @@
-{:soil               {:version "0.1.1"}
+{:port               8080
+ :soil               {:version "0.1.2"}
  :hive               {:version "1f09933bdde4ac685934b09bd3d34309e965a76c"
                       :image   "formicarium/hive:1f09933bdde4ac685934b09bd3d34309e965a76c"}
  :tanajura           {:version "1.7.0"
