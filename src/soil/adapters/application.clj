@@ -119,6 +119,12 @@
        (mapv (fn [{:interface/keys [name host]}] {name host}))
        (apply merge)))
 
+(s/defn internal->wire :- schemas.application/Application
+  [application :- models.application/Application]
+  {:name     (:application/name application)
+   :devspace (:application/devspace application)
+   :links    (application->urls application)})
+
 (s/defn application-key :- s/Str
   [devspace :- s/Str
    app-name :- s/Str]

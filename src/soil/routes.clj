@@ -55,7 +55,7 @@
     service-name   :service-name}]
   {:status 200
    :body   (-> (controllers.service/one-service devspace-name service-name etcd)
-               adapters.application/application->urls)})
+               adapters.application/internal->wire)})
 
 (defn deploy-service
   [{{:keys [k8s-client config-server config]} :components
@@ -63,7 +63,7 @@
     devspace-name                             :devspace-name}]
   {:status 201
    :body   (-> (controllers.service/create-service! service-deploy devspace-name config k8s-client config-server)
-               adapters.application/application->urls)})
+               adapters.application/internal->wire)})
 
 (defn delete-service
   [{{:keys [k8s-client]} :components

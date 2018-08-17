@@ -18,9 +18,9 @@
 (s/defn internal->wire :- schemas.devspace/Devspace
   [devspace :- models.devspace/Devspace]
   (-> (misc/map-keys (comp keyword name) devspace)
-      (update :hive adapters.application/application->urls)
-      (update :tanajura adapters.application/application->urls)
-      (update :applications #(mapv adapters.application/application->urls %))))
+      (update :hive adapters.application/internal->wire)
+      (update :tanajura adapters.application/internal->wire)
+      (update :applications #(mapv adapters.application/internal->wire %))))
 
 (s/defn devspace->key :- s/Str
   [{:devspace/keys [name]} :- models.devspace/PersistentDevspace]
