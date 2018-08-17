@@ -1,61 +1,71 @@
 (ns soil.controllers.devspaces
-  (:require [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
-            [soil.controllers.services :as c-svc]
-            [soil.logic.devspace :as l-env]
-            [soil.logic.services :as l-svc]
-            [soil.config :as config]
+  (:require [soil.protocols.kubernetes-client :as protocols.k8s]
+            [soil.models.devspace :as models.devspace]
+            [soil.logic.devspace :as logic.devspace]
+            [soil.logic.services :as logic.service]
+            [soil.adapters.application :as adapters.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]
-            [soil.protocols.config.config :as protocol.config]))
+            [clj-service.protocols.config :as protocols.config]
+            [schema.core :as s]
+            [selmer.parser]
+            [soil.models.application :as models.application]
+            [soil.controllers.application :as controllers.application]
+            [clojure.java.io :as io]
+            [soil.db.etcd.devspace :as etcd.devspace]
+            [soil.protocols.etcd :as protocols.etcd]
+            [soil.db.etcd.application :as etcd.application]))
 
-(defn create-devspace
-  [devspace config k8s-client]
-  (let [namespace (:name devspace)]
-    (merge {:namespace (-> (p-k8s/create-namespace k8s-client namespace {:kind config/fmc-devspace-label})
-                           l-env/namespace->devspace)}
-      (c-svc/create-kubernetes-resources! (l-svc/hive->kubernetes namespace config)
-        k8s-client)
-      (c-svc/create-kubernetes-resources! (l-svc/tanajura->kubernetes namespace config)
-        k8s-client))))
+(s/defn ^:private load-application-template :- models.application/Application
+  [name :- s/Str
+   replace-map :- (s/pred map?)
+   config :- protocols.config/IConfig]
+  (-> (str "templates/" name ".edn")
+      io/resource
+      slurp
+      (selmer.parser/render replace-map)
+      read-string
+      (adapters.application/definition->application config)))
 
-(defn hive-api-url [domain devspace]
-  (str "http://hive." devspace "." domain))
+(s/defn hive-application :- models.application/Application
+  [devspace :- s/Str
+   config :- protocols.config/Config]
+  (load-application-template "hive" {:devspace devspace} config))
 
-(defn hive-repl-host [domain k8s-client devspace]
-  (let [repl-port (->> k8s-client
-                       diplomat.kubernetes/get-nginx-tcp-config-map
-                       (l-svc/get-repl-port devspace "hive"))]
-    (when repl-port
-      (str "nrepl://hive." devspace "." domain ":" repl-port))))
+(s/defn tanajura-application :- models.application/Application
+  [devspace :- s/Str
+   config :- protocols.config/Config]
+  (load-application-template "tanajura" {:devspace devspace} config))
 
-(defn tanajura-api-url [domain devspace]
-  (str "http://tanajura." devspace "." domain))
+(s/defn create-devspace! :- models.devspace/Devspace
+  [devspace-name :- s/Str
+   config :- protocols.config/IConfig
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [hive-app     (hive-application devspace-name config)
+        tanajura-app (tanajura-application devspace-name config)]
+    (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
+    (etcd.devspace/create-devspace! devspace-name etcd)
+    (controllers.application/create-application! hive-app etcd k8s-client)
+    (controllers.application/create-application! tanajura-app etcd k8s-client)
+    #:devspace{:name         devspace-name
+               :hive         hive-app
+               :tanajura     tanajura-app
+               :applications []}))
 
-(defn tanajura-git-url [domain devspace]
-  (str "http://git." devspace "." domain))
+(s/defn get-devspaces :- [models.devspace/Devspace]
+  [etcd :- protocols.etcd/IEtcd]
+  (etcd.devspace/get-devspaces etcd))
 
-(defn config-server-url [config devspace]
-  (protocol.config/get-config config [:configserver :url]))
+(s/defn one-devspace :- models.devspace/Devspace
+  [devspace-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  (etcd.devspace/get-devspace devspace-name etcd))
 
-(defn list-devspaces
-  [k8s-client config]
-  (let [top-level       (protocol.config/get-config config [:formicarium :domain])
-        devspaces       (->> (p-k8s/list-namespaces k8s-client)
-                             l-env/namespaces->devspaces)
-        devspaces-names (map :name devspaces)]
-    (->> devspaces
-         (reduce (fn [acc {:keys [name]}] (conj acc name)) [])
-         (map (juxt
-                (partial hive-api-url top-level)
-                (partial hive-repl-host top-level k8s-client)
-                (partial tanajura-api-url top-level)
-                (partial tanajura-git-url top-level)
-                (partial config-server-url config)))
-         (map #(zipmap [:hiveApiUrl :hiveReplUrl :tanajuraApiUrl :tanajuraGitUrl :configServerUrl] %))
-         (map (fn [devspace url] {devspace url}) devspaces-names)
-         (reduce merge))))
-
-(defn delete-devspace
-  [devspace k8s-client]
-  (do (p-k8s/delete-namespace k8s-client (:name devspace))
-      {:success true}))
+(s/defn delete-devspace!
+  [devspace :- s/Str
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (protocols.k8s/delete-namespace! k8s-client devspace)
+  (etcd.devspace/delete-devspace! devspace etcd)
+  (etcd.application/delete-all-applications! devspace etcd))
 

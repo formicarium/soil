@@ -1,0 +1,14 @@
+{:name       "tanajura"
+ :devspace   "{{devspace}}"
+ :containers [{:name  "tanajura"
+               :image "formicarium/tanajura:1.7.0"
+               :syncable?  false
+               :env   {}}]
+ :interfaces [{:name      "default"
+               :port      3002
+               :type      :http
+               :container "tanajura"}
+              {:name      "git"
+               :port      6666
+               :type      :http
+               :container "tanajura"}]}

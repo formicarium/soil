@@ -1,3 +1,7 @@
-{:configserver {:url "http://localhost:8081"}
- :kubernetes   {:proxy {:url "http://localhost:9000"}}
- :formicarium  {:domain "formicarium.host"}}
+#merge [#include "base.edn"
+        {:port          8080
+         :env           "dev"
+         :config-server {:url "http://localhost:8081"}
+         :kubernetes    {:proxy {:url "http://localhost:9000"}}
+         :formicarium   {:domain "formicarium.host"}
+         :skip-kubectl-proxy false}]

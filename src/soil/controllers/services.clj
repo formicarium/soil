@@ -1,51 +1,51 @@
 (ns soil.controllers.services
-  (:require [soil.protocols.kubernetes.kubernetes-client :as p-k8s]
-            [soil.protocols.configserver.configserver-client :as p-cs]
-            [soil.protocols.config.config :as cfg]
-            [soil.diplomat.kubernetes :as d-k8s]
-            [soil.diplomat.hive :as hive]
-            [soil.logic.services :as l-svc]
-            [io.pedestal.log :as log]))
+  (:require [soil.protocols.kubernetes-client :as protocols.k8s-client]
+            [soil.protocols.config-server-client :as protocols.config-server-client]
+            [clj-service.protocols.config :as protocols.config]
+            [soil.diplomat.config-server :as diplomat.config-server]
+            [schema.core :as s]
+            [soil.models.application :as models.application]
+            [soil.logic.application :as logic.application]
+            [soil.schemas.service :as schemas.service]
+            [soil.controllers.application :as controllers.application]
+            [soil.protocols.etcd :as protocols.etcd]
+            [soil.db.etcd.application :as etcd.application]))
 
-(defn create-kubernetes-resources!
-  [{:keys [deployment ingress service tcp-services]} k8s-client]
-  (log/info "create-kubernetes-resources!" service)
-  {:deployment   (get-in (p-k8s/create-deployment k8s-client deployment) [:metadata :name])
-   :service      (mapv (fn [svc] (log/info "svc" svc) (get-in (p-k8s/create-service k8s-client svc) [:metadata :name])) service)
-   :ingress      (get-in (p-k8s/create-ingress k8s-client ingress) [:metadata :name])
-   :tcp-services (:data (d-k8s/add-tcp-ports tcp-services nil k8s-client))})
+(s/defn create-service! :- models.application/Application
+  [service-deploy :- schemas.service/DeployService,
+   devspace :- s/Str
+   config :- protocols.config/IConfig
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s-client/IKubernetesClient
+   config-server :- protocols.config-server-client/IConfigServerClient]
+  (-> (diplomat.config-server/get-service-application devspace service-deploy config config-server)
+      (logic.application/with-syncable-config (protocols.config/get-in! config [:formicarium :domain]))
+      (controllers.application/create-application! etcd k8s-client)))
 
-(defn to-kubernetes-resources [devspace config svc-config]
-  (l-svc/config->kubernetes svc-config devspace (cfg/get-config config [:formicarium :domain])))
+(s/defn ^:private try-delete :- s/Str
+  [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s-client/KubernetesClient s/Str s/Str]])
+   service-name :- s/Str
+   devspace :- s/Str
+   k8s-client :- protocols.k8s-client/KubernetesClient]
+  (try (delete-fn k8s-client service-name devspace)
+       "deleted"
+       (catch Exception e
+         (.printStackTrace e)
+         "not-deleted")))
 
-(defn notify-hive
-  [devspace service-name]
-  (try
-    (hive/notify-service-deployed devspace service-name)
-    (catch Exception e
-      (log/error :exception e)
-      nil)))
+(s/defn delete-service!
+  [service-name :- s/Str
+   devspace :- s/Str
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s-client/KubernetesClient]
+  (etcd.application/delete-application! service-name devspace etcd)
+  {:deployment   (try-delete protocols.k8s-client/delete-deployment! service-name devspace k8s-client)
+   :service      (try-delete protocols.k8s-client/delete-service! service-name devspace k8s-client)
+   :ingress      (try-delete protocols.k8s-client/delete-ingress! service-name devspace k8s-client)
+   :tcp-services "not-yet-implemented"})
 
-(defn deploy-service!
-  [service-args devspace k8s-client config-server config]
-  (let [resources (create-kubernetes-resources! (->> service-args
-                                                     (p-cs/on-deploy-service config-server)
-                                                     (to-kubernetes-resources devspace config))
-                    k8s-client)]
-    resources))
-
-(defn delete-ingresses [service-name devspace k8s-client]
-  (p-k8s/delete-service k8s-client (str service-name "-stinger") devspace)
-  (p-k8s/delete-service k8s-client (str service-name "-default") devspace)
-  "deleted")
-
-(defn destroy-service!
-  [service-name devspace k8s-client]
-  {:deployment   (do (p-k8s/delete-deployment k8s-client service-name devspace) "deleted")
-   :service      (delete-ingresses service-name devspace k8s-client)
-   :ingress      (do (p-k8s/delete-ingress k8s-client service-name devspace) "deleted")
-   :tcp-services (do #_(d-k8s/delete-tcp-ports [service-name] k8s-client) "deleted")})
-
-#_(defn create-hive!
-    [devspace k8s-client]
-    (p-k8s/create-deployment k8s-client))
+(s/defn one-service :- models.application/Application
+  [devspace-name :- s/Str
+   service-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  (:value (etcd.application/get-application! devspace-name service-name etcd)))
