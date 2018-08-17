@@ -23,13 +23,14 @@
    :body   {:version (config/version config)}})
 
 (defn get-devspaces
-  [{{:keys [config k8s-client]} :components}]
+  [{{:keys [etcd]} :components}]
   {:status 200
-   :body   (controllers.devspace/list-devspaces k8s-client config)})
+   :body   (->> (controllers.devspace/get-devspaces etcd)
+                (mapv adapters.devspace/internal->wire))})
 
 (defn create-devspace!
   [{{:keys [config k8s-client etcd]} :components
-    {devspace-name :name}       :data}]
+    {devspace-name :name}            :data}]
   {:status 201
    :body   (-> (controllers.devspace/create-devspace! devspace-name config etcd k8s-client)
                adapters.devspace/internal->wire)})

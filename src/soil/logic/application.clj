@@ -63,3 +63,23 @@
   (if (is-application-syncable? application)
     (make-syncable application domain)
     application))
+
+(s/defn hive? :- s/Bool
+  [application :- models.application/Application]
+  (= "hive" (:application/name application)))
+
+(s/defn tanajura? :- s/Bool
+  [application :- models.application/Application]
+  (= "tanajura" (:application/name application)))
+
+(s/defn get-hive :- (s/maybe models.application/Application)
+  [applications :- [models.application/Application]]
+  (first (filter hive? applications)))
+
+(s/defn get-tanajura :- (s/maybe models.application/Application)
+  [applications :- [models.application/Application]]
+  (first (filter tanajura? applications)))
+
+(s/defn but-hive-tanajura :- [models.application/Application]
+  [applications :- [models.application/Application]]
+  (remove #(or (tanajura? %) (hive? %)) applications))

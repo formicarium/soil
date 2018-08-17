@@ -5,7 +5,9 @@
             [soil.schemas.devspace :as schemas.devspace]
             [soil.models.devspace :as models.devspace]
             [soil.adapters.application :as adapters.application]
-            [clj-service.misc :as misc]))
+            [clj-service.misc :as misc]
+            [soil.models.application :as models.application]
+            [soil.logic.application :as logic.application]))
 
 (s/defn devspace-name->create-namespace :- schemas.k8s.namespace/CreateNamespace
   [devspace-name :- s/Str]
@@ -31,3 +33,11 @@
 (s/defn devspace-name->persistent :- models.devspace/PersistentDevspace
   [devspace-name :- s/Str]
   #:devspace{:name devspace-name})
+
+(s/defn persistent+applications->internal :- models.devspace/Devspace
+  [devspace :- models.devspace/PersistentDevspace
+   applications :- [models.application/Application]]
+  (assoc devspace
+    :devspace/hive (logic.application/get-hive applications)
+    :devspace/tanajura (logic.application/get-tanajura applications)
+    :devspace/applications (logic.application/but-hive-tanajura applications)))

@@ -1,7 +1,7 @@
 (ns soil.server
   (:gen-class)
   (:require [com.stuartsierra.component :as component]
-            [soil.component :as soil]))
+            [soil.components :as soil]))
 
 (defn run-dev
   "The entry-point for 'lein run-dev'"

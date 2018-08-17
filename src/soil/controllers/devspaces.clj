@@ -12,7 +12,6 @@
             [soil.controllers.application :as controllers.application]
             [clojure.java.io :as io]
             [soil.db.etcd.devspace :as etcd.devspace]
-            [soil.db.etcd.application :as etcd.application]
             [soil.protocols.etcd :as protocols.etcd]))
 
 (s/defn ^:private load-application-template :- models.application/Application
@@ -52,42 +51,9 @@
                :tanajura     tanajura-app
                :applications []}))
 
-(defn hive-api-url [domain devspace]
-  (str "http://hive." devspace "." domain))
-
-(defn hive-repl-host [domain k8s-client devspace]
-  (let [repl-port (->> k8s-client
-                       diplomat.kubernetes/get-nginx-tcp-config-map
-                       (logic.service/get-repl-port devspace "hive"))]
-    (when repl-port
-      (str "nrepl://hive." devspace "." domain ":" repl-port))))
-
-(defn tanajura-api-url [domain devspace]
-  (str "http://tanajura." devspace "." domain))
-
-(defn tanajura-git-url [domain devspace]
-  (str "http://git." devspace "." domain))
-
-(defn config-server-url [config devspace]
-  (protocols.config/get-in! config [:config-server :url]))
-
-(defn list-devspaces
-  [k8s-client config]
-  (let [top-level (protocols.config/get-in! config [:formicarium :domain])
-        devspaces (->> (protocols.k8s/list-namespaces k8s-client)
-                       logic.devspace/namespaces->devspaces)
-        devspaces-names (map :name devspaces)]
-    (->> devspaces
-         (reduce (fn [acc {:keys [name]}] (conj acc name)) [])
-         (map (juxt
-                (partial hive-api-url top-level)
-                (partial hive-repl-host top-level k8s-client)
-                (partial tanajura-api-url top-level)
-                (partial tanajura-git-url top-level)
-                (partial config-server-url config)))
-         (map #(zipmap [:hiveApiUrl :hiveReplUrl :tanajuraApiUrl :tanajuraGitUrl :configServerUrl] %))
-         (map (fn [devspace url] {devspace url}) devspaces-names)
-         (reduce merge))))
+(s/defn get-devspaces :- [models.devspace/Devspace]
+  [etcd :- protocols.etcd/IEtcd]
+  (etcd.devspace/get-devspaces etcd))
 
 (s/defn delete-devspace!
   [devspace :- s/Str

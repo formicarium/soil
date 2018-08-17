@@ -1,7 +1,7 @@
 (ns spin-env
   (:require [selvage.flow :refer [flow *world*]]
             [midje.sweet :refer :all]
-            [soil.component :as soil]
+            [soil.components :as soil]
             [com.stuartsierra.component :as component]
             [cheshire.core :as cheshire]
             [io.pedestal.http :as http]
