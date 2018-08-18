@@ -26,7 +26,9 @@
               :port      port
               :type      type
               :container container
-              :host      (calc-host service name devspace domain)})
+              :host      (if (= type :interface.type/tcp)
+                           nil
+                           (calc-host service name devspace domain))})
 
 (s/defn tcp-entry
   [service-name devspace port]

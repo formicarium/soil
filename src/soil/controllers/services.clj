@@ -13,6 +13,12 @@
             [soil.db.etcd.application :as etcd.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]))
 
+(s/defn render-service :- models.application/Application
+  [application :- models.application/Application
+   k8s-client :- protocols.k8s-client/KubernetesClient]
+  (->> (controllers.application/get-tcp-hosts application k8s-client)
+       (logic.application/render-tcp-hosts application)))
+
 (s/defn create-service! :- models.application/Application
   [service-deploy :- schemas.service/DeployService,
    devspace :- s/Str
@@ -52,12 +58,6 @@
                         (catch Exception e
                           (.printStackTrace e)
                           "not-deleted"))}))
-
-(s/defn render-service :- models.application/Application
-  [application :- models.application/Application
-   k8s-client :- protocols.k8s-client/KubernetesClient]
-  (->> (controllers.application/get-tcp-hosts application k8s-client)
-       (logic.application/render-tcp-hosts application)))
 
 (s/defn one-service :- models.application/Application
   [devspace-name :- s/Str

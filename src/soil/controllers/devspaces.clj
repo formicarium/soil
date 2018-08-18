@@ -47,7 +47,15 @@
   (map #(-> (assoc % :devspace devspace-name)
             (adapters.application/definition->application config)
             (controllers.application/create-application! etcd config k8s-client))
-    setup-apps))
+       setup-apps))
+
+(s/defn render-devspace :- models.devspace/Devspace
+  [devspace :- models.devspace/Devspace
+   k8s-client :- protocols.k8s/KubernetesClient]
+  (-> devspace
+      (update-in [:devspace/hive] #(controllers.services/render-service % k8s-client))
+      (update-in [:devspace/tanajura] #(controllers.services/render-service % k8s-client))
+      (update-in [:devspace/applications] (fn [apps] (mapv #(controllers.services/render-service % k8s-client) apps)))))
 
 (s/defn create-devspace! :- models.devspace/Devspace
   [{devspace-name :name :as new-devspace} :- schemas.devspace/CreateDevspace
@@ -63,18 +71,18 @@
                                (controllers.application/create-application! etcd config k8s-client))
              :applications (create-setup! new-devspace config etcd k8s-client)})
 
+
 (s/defn get-devspaces :- [models.devspace/Devspace]
-  [etcd :- protocols.etcd/IEtcd]
-  (etcd.devspace/get-devspaces etcd))
+  [etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s/KubernetesClient]
+  (mapv #(render-devspace % k8s-client) (etcd.devspace/get-devspaces etcd)))
 
 (s/defn one-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s/KubernetesClient]
-  (-> #misc/debug (etcd.devspace/get-devspace devspace-name etcd)
-      (update-in [:devspace/hive] #(controllers.services/render-service % k8s-client))
-      (update-in [:devspace/tanajura] #(controllers.services/render-service % k8s-client))
-      (update-in [:devspace/applications] (fn [apps] #misc/debug apps (mapv #(controllers.services/render-service #misc/debug % k8s-client) apps)))))
+  (-> (etcd.devspace/get-devspace devspace-name etcd)
+      (render-devspace k8s-client)))
 
 (s/defn delete-devspace!
   [devspace :- s/Str

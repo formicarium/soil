@@ -23,9 +23,9 @@
    :body   {:version (config/version config)}})
 
 (defn get-devspaces
-  [{{:keys [etcd]} :components}]
+  [{{:keys [etcd k8s-client]} :components}]
   {:status 200
-   :body   (->> (controllers.devspace/get-devspaces etcd)
+   :body   (->> (controllers.devspace/get-devspaces etcd k8s-client)
                 (mapv adapters.devspace/internal->wire))})
 
 (defn one-devspace

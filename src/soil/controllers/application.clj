@@ -7,7 +7,8 @@
             [soil.protocols.etcd :as protocols.etcd]
             [soil.db.etcd.application :as etcd.application]
             [clj-service.protocols.config :as protocols.config]
-            [soil.logic.application :as logic.application]))
+            [soil.logic.application :as logic.application]
+            [soil.controllers.services :as controllers.services]))
 
 (s/defn create-application! :- models.application/Application
   [application :- models.application/Application
@@ -19,7 +20,7 @@
   (diplomat.kubernetes/create-service! application k8s-client)
   (diplomat.kubernetes/add-tcp-config-map-entries! application config k8s-client)
   (etcd.application/create-application! application etcd)
-  application)
+  (controllers.services/render-service application k8s-client))
 
 (s/defn get-tcp-hosts :- {s/Str s/Str}
   [application :- models.application/Application
