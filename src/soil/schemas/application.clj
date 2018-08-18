@@ -13,7 +13,7 @@
                                                   :container s/Str
                                                   :type      InterfaceType}]})
 
-(s/defn DevspacedApplicationDefinition (dissoc ApplicationDefinition :devspace :name))
+(s/defschema DevspacedApplicationDefinition (dissoc ApplicationDefinition :devspace :name))
 
 (s/defschema ApplicationUrls {s/Keyword s/Str})
 (s/defschema Application {:name     s/Str
