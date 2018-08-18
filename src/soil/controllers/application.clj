@@ -12,7 +12,7 @@
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s-client/IKubernetesClient]
   (diplomat.kubernetes/create-deployment! application k8s-client)
-  (diplomat.kubernetes/create-ingress! application k8s-client)
   (diplomat.kubernetes/create-service! application k8s-client)
+  (diplomat.kubernetes/create-ingress! application k8s-client)
   (etcd.application/create-application! application etcd)
   application)

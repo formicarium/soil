@@ -40,7 +40,7 @@
   (logic.interface/new {:name      "stinger"
                         :devspace  devspace
                         :port      24000
-                        :type      :http
+                        :type      :interface.type/http
                         :container (:container/name (get-syncable-container containers))
                         :service   name
                         :domain    domain}))

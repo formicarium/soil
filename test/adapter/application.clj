@@ -9,13 +9,13 @@
   #:application {:name       "kratos"
                  :devspace   "carlos-rodrigues"
                  :status     :application.status/template
-                 :containers [#:container {:name  "kratos"
-                                           :image "formicarium/chamber-lein:latest"
-                                           :syncable?  true
-                                           :env   {"STARTUP_CLONE"   "true"
-                                                   "STINGER_PORT"    "24000"
-                                                   "APP_PATH"        "/app"
-                                                   "STINGER_SCRIPTS" "/scripts"}}]
+                 :containers [#:container {:name      "kratos"
+                                           :image     "formicarium/chamber-lein:latest"
+                                           :syncable? true
+                                           :env       {"STARTUP_CLONE"   "true"
+                                                       "STINGER_PORT"    "24000"
+                                                       "APP_PATH"        "/app"
+                                                       "STINGER_SCRIPTS" "/scripts"}}]
                  :interfaces [#:interface {:name      "default"
                                            :port      8080
                                            :type      :interface.type/http
@@ -37,7 +37,8 @@
                 :replicas 1
                 :template {:metadata {:labels    {:app "kratos"}
                                       :namespace "carlos-rodrigues"}
-                           :spec     {:containers [{:name  "kratos"
+                           :spec     {:hostname   "kratos"
+                                      :containers [{:name  "kratos"
                                                     :image "formicarium/chamber-lein:latest"
                                                     :ports [{:name          "default"
                                                              :containerPort 8080}
@@ -54,7 +55,7 @@
 
 
 (fact "externalize application to deployment"
-      (adapters.application/application->deployment kratos-application) => kratos-deployment)
+  (adapters.application/application->deployment kratos-application) => kratos-deployment)
 
 (def kratos-service
   {:apiVersion "v1"
@@ -74,7 +75,7 @@
 
 
 (fact "externalize application to service"
-      (adapters.application/application->service kratos-application) => kratos-service)
+  (adapters.application/application->service kratos-application) => kratos-service)
 
 (def kratos-ingress
   {:apiVersion "extensions/v1beta1"
@@ -89,13 +90,13 @@
                                          :path    "/"}]}}]}})
 
 (fact "externalize application to ingress"
-      (adapters.application/application->ingress kratos-application) => kratos-ingress)
+  (adapters.application/application->ingress kratos-application) => kratos-ingress)
 
 (def kratos-config-map
   {:data {:4053 "carlos-rodrigues/kratos:35000"}})
 
 (fact "externalize application to config-map"
-      (adapters.application/application->config-map [4053] kratos-application) => kratos-config-map
-      (adapters.application/application->config-map [] kratos-application) => throws
-      (adapters.application/application->config-map [4053 4054 5042] kratos-application) => kratos-config-map)
+  (adapters.application/application->config-map [4053] kratos-application) => kratos-config-map
+  (adapters.application/application->config-map [] kratos-application) => throws
+  (adapters.application/application->config-map [4053 4054 5042] kratos-application) => kratos-config-map)
 
