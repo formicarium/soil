@@ -2,7 +2,7 @@
 
 set -eou pipefail
 
-version=$(cat ./resources/base.edn | grep  ':version .*"[0-9\.]*"' | grep -oEi '\d*\.\d*\.\d*')
+version=$(cat ./resources/base.edn | grep  ':version .*"[0-9\.]*"' | grep -oEi '[0-9]+\.[0-9]+\.[0-9]+')
 
 lein clean
 lein uberjar
