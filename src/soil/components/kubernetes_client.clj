@@ -10,6 +10,7 @@
             [kubernetes.api.v1 :as k8s]
             [clj-service.exception :as exception]
             [clj-service.protocols.config :as protocols.config]))
+
 (def KubernetesContext {:server s/Str})
 (def ctx (k8s/make-context "http://localhost:9000"))
 
