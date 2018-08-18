@@ -29,10 +29,10 @@
                 (mapv adapters.devspace/internal->wire))})
 
 (defn one-devspace
-  [{{:keys [etcd]} :components
+  [{{:keys [etcd k8s-client]} :components
     devspace-name  :devspace-name}]
   {:status 200
-   :body   (->> (controllers.devspace/one-devspace devspace-name etcd)
+   :body   (->> (controllers.devspace/one-devspace devspace-name etcd k8s-client)
                 adapters.devspace/internal->wire)})
 
 (defn create-devspace!
@@ -58,18 +58,18 @@
                adapters.application/application->urls)})
 
 (defn delete-service!
-  [{{:keys [k8s-client etcd]} :components
+  [{{:keys [k8s-client etcd config]} :components
+    devspace-name                    :devspace-name
+    service-name                     :service-name}]
+  {:status 200
+   :body   (controllers.service/delete-service! service-name devspace-name etcd config k8s-client)})
+
+(defn one-service
+  [{{:keys [etcd k8s-client]} :components
     devspace-name             :devspace-name
     service-name              :service-name}]
   {:status 200
-   :body   (controllers.service/delete-service! service-name devspace-name etcd k8s-client)})
-
-(defn one-service
-  [{{:keys [etcd]} :components
-    devspace-name  :devspace-name
-    service-name   :service-name}]
-  {:status 200
-   :body   (-> (controllers.service/one-service devspace-name service-name etcd)
+   :body   (-> (controllers.service/one-service devspace-name service-name etcd k8s-client)
                adapters.application/internal->wire)})
 
 (def routes

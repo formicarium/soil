@@ -27,9 +27,9 @@
    config-map]
   (prn config-map)
   (<!! (k8s/patch-namespaced-config-map ctx
-         config-map
-         {:name      name
-          :namespace namespace})))
+                                        config-map
+                                        {:name      name
+                                         :namespace namespace})))
 
 (s/defn create-namespace-impl!
   [ctx :- KubernetesContext
@@ -39,6 +39,11 @@
 (s/defn delete-namespace-impl!
   [ctx :- KubernetesContext namespace-name :- s/Str]
   (<!! (k8s/delete-namespace ctx {} {:name namespace-name})))
+
+(s/defn list-deployment-impl :- [(s/pred map?)]
+  [ctx :- KubernetesContext
+   namespace :- s/Str]
+  (<!! (k8s-apps/list-namespaced-deployment ctx {:namespace namespace})))
 
 (s/defn delete-deployment-impl!
   [ctx :- KubernetesContext
@@ -52,7 +57,7 @@
    deployment :- schemas.kubernetes.deployment/Deployment]
   (prn deployment)
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
-         {:namespace (get-in deployment [:metadata :namespace])})))
+                                              {:namespace (get-in deployment [:metadata :namespace])})))
 
 (s/defn create-ingress-impl! [ctx ingress]
   (<!! (extensions-v1beta1/create-namespaced-ingress ctx ingress {:namespace (get-in ingress [:metadata :namespace])})))
@@ -67,6 +72,15 @@
 (defn create-service-impl! [ctx service]
   (<!! (k8s/create-namespaced-service ctx service {:namespace (get-in service [:metadata :namespace])})))
 
+(s/defn get-service-impl!
+  [ctx service-name namespace]
+  (<!! (k8s/read-namespaced-service ctx {:namespace namespace
+                                         :name      service-name})))
+
+(s/defn list-nodes-impl :- [(s/pred map?)]
+  [ctx :- KubernetesContext]
+  (:items (<!! (k8s/list-node ctx))))
+
 (s/defn delete-service-impl!
   [ctx :- KubernetesContext
    name :- s/Str
@@ -74,8 +88,14 @@
   (<!! (k8s/delete-namespaced-service ctx {} {:name      name
                                               :namespace namespace})))
 
-(defn list-namespaces-impl [ctx]
+(s/defn list-namespaces-impl :- [(s/pred map?)]
+  [ctx :- KubernetesContext]
   (:items (<!! (k8s/list-namespace ctx))))
+
+(s/defn list-pods-impl :- [(s/pred map?)]
+  [ctx :- KubernetesContext
+   namespace :- s/Str]
+  (:items (<!! (k8s/list-namespaced-pod ctx {:namespace namespace}))))
 
 (defn check-api-health
   [ctx]
@@ -86,12 +106,16 @@
   (log/info :log apiserver-response)
   (if (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
     (case (:code apiserver-response)
-      409 (throw (ex-info name (merge {:type type :code 409 :message (:reason apiserver-response)} apiserver-response) (:exception apiserver-response)))
+      409 (throw (ex-info (:reason apiserver-response) (merge {:type type :code 409 :message (:reason apiserver-response)} apiserver-response) (:exception apiserver-response)))
       (exception/server-error! {:log apiserver-response}))
     apiserver-response))
 
 (defrecord KubernetesClient [config]
   protocols.kubernetes-client/KubernetesClient
+  (list-nodes [this]
+    (-> (list-nodes-impl (:ctx this))
+        (raise-errors!)))
+
   (create-namespace! [this k8s-namespace]
     (-> (create-namespace-impl! (:ctx this) k8s-namespace)
         (raise-errors!)))
@@ -112,12 +136,18 @@
   (create-service! [this service]
     (-> (create-service-impl! (:ctx this) service)
         (raise-errors!)))
+  (get-service [this service-name namespace]
+    (-> (get-service-impl! (:ctx this) service-name namespace)
+        (raise-errors!)))
   (delete-service! [this service-name namespace]
     (-> (delete-service-impl! (:ctx this) service-name namespace)
         (raise-errors!)))
 
   (create-deployment! [this deployment]
     (-> (create-deployment-impl! (:ctx this) deployment)
+        (raise-errors!)))
+  (list-deployment [this namespace]
+    (-> (list-deployment-impl (:ctx this) namespace)
         (raise-errors!)))
   (delete-deployment! [this deployment-name namespace]
     (-> (delete-deployment-impl! (:ctx this) deployment-name namespace)
@@ -128,6 +158,10 @@
         (raise-errors!)))
   (patch-config-map! [this name namespace config-map]
     (-> (patch-config-map-impl! (:ctx this) name namespace config-map)
+        (raise-errors!)))
+
+  (list-pods [this namespace]
+    (-> (list-pods-impl (:ctx this) namespace)
         (raise-errors!)))
 
   component/Lifecycle

@@ -3,6 +3,7 @@
             [soil.models.devspace :as models.devspace]
             [soil.logic.devspace :as logic.devspace]
             [soil.logic.services :as logic.service]
+            [soil.controllers.services :as controllers.services]
             [soil.adapters.application :as adapters.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]
             [clj-service.protocols.config :as protocols.config]
@@ -45,8 +46,8 @@
         tanajura-app (tanajura-application devspace-name config)]
     (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
     (etcd.devspace/create-devspace! devspace-name etcd)
-    (controllers.application/create-application! hive-app etcd k8s-client)
-    (controllers.application/create-application! tanajura-app etcd k8s-client)
+    (controllers.application/create-application! hive-app etcd config k8s-client)
+    (controllers.application/create-application! tanajura-app etcd config k8s-client)
     #:devspace{:name         devspace-name
                :hive         hive-app
                :tanajura     tanajura-app
@@ -58,8 +59,12 @@
 
 (s/defn one-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str
-   etcd :- protocols.etcd/IEtcd]
-  (etcd.devspace/get-devspace devspace-name etcd))
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s/KubernetesClient]
+  (-> #misc/debug (etcd.devspace/get-devspace devspace-name etcd)
+      (update-in [:devspace/hive] #(controllers.services/render-service % k8s-client))
+      (update-in [:devspace/tanajura] #(controllers.services/render-service % k8s-client))
+      (update-in [:devspace/applications] (fn [apps] #misc/debug apps (mapv #(controllers.services/render-service #misc/debug % k8s-client) apps)))))
 
 (s/defn delete-devspace!
   [devspace :- s/Str

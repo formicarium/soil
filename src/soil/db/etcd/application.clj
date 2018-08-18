@@ -26,4 +26,4 @@
 (s/defn delete-all-applications!
   [devspace-name :- s/Str
    etcd :- protocols.etcd/IEtcd]
-  (protocols.etcd/delete! etcd (adapters.devspace/devspace-name->application-prefix devspace-name)))
+  (protocols.etcd/delete-prefix! etcd (adapters.devspace/devspace-name->application-prefix devspace-name)))
