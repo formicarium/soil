@@ -16,3 +16,4 @@
 
 (defn update-if [m k f] (update-in-if m [k] f))
 
+(defn find-first [s pred] (first (filter pred s)))

@@ -37,9 +37,9 @@
 
 (defn create-devspace!
   [{{:keys [config k8s-client etcd]} :components
-    {devspace-name :name}            :data}]
+    new-devspace                     :data}]
   {:status 201
-   :body   (-> (controllers.devspace/create-devspace! devspace-name config etcd k8s-client)
+   :body   (-> (controllers.devspace/create-devspace! new-devspace config etcd k8s-client)
                adapters.devspace/internal->wire)})
 
 (defn delete-devspace!
@@ -51,7 +51,7 @@
 
 (defn create-service!
   [{{:keys [k8s-client config-server config etcd]} :components
-    service-deploy                                 :json-params
+    service-deploy                                 :data
     devspace-name                                  :devspace-name}]
   {:status 200
    :body   (-> (controllers.service/create-service! service-deploy devspace-name config etcd k8s-client config-server)
