@@ -6,4 +6,4 @@
 
 (s/defn version :- s/Str
   [config :- protocols.config/IConfig]
-  (protocols.config/get-in! config [:soil :version]))
+  (protocols.config/get! config :version))

@@ -1,10 +1,6 @@
 {:port               8080
- :soil               {:version "0.1.8"}
- :hive               {:version "1f09933bdde4ac685934b09bd3d34309e965a76c"
-                      :image   "formicarium/hive:1f09933bdde4ac685934b09bd3d34309e965a76c"}
- :tanajura           {:version "1.7.0"
-                      :image   "formicarium/tanajura:1.7.0"}
+ :version            "0.1.8"
+ :skip-kubectl-proxy false
  :etcd               {:endpoint "localhost"
-                      :port     2379}
- :skip-kubectl-proxy false}
+                      :port     2379}}
 
