@@ -8,7 +8,7 @@ lein clean
 lein uberjar
 
 docker build -t soil:${version} .
-docker tag soil:$1 formicarium/soil:${version}
-docker tag soil:$1 formicarium/soil:latest
+docker tag soil:${version} formicarium/soil:${version}
+docker tag soil:${version} formicarium/soil:latest
 docker push formicarium/soil:${version}
 docker push formicarium/soil:latest
