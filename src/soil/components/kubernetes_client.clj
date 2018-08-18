@@ -87,7 +87,7 @@
   (log/info :log apiserver-response)
   (if (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
     (case (:code apiserver-response)
-      409 (throw (ex-info name (merge {:type type :code 409 :message (:reason apiserver-response)} apiserver-response) (:exception apiserver-response)))
+      409 (throw (ex-info (:reason apiserver-response) (merge {:type type :code 409 :message (:reason apiserver-response)} apiserver-response) (:exception apiserver-response)))
       (exception/server-error! {:log apiserver-response}))
     apiserver-response))
 
