@@ -118,7 +118,7 @@
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
   (->> (logic.application/get-non-tcp-interfaces application)
-       (mapv (fn [{:interface/keys [name host]}] {name host}))
+       (mapv (fn [{:interface/keys [name host type]}] {name (str (name type) "://" host)}))
        (apply merge)))
 
 (s/defn internal->wire :- schemas.application/Application

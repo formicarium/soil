@@ -26,7 +26,7 @@
               :port      port
               :type      type
               :container container
-              :host      (str (name type) "://" (calc-host service name devspace domain))})
+              :host      (calc-host service name devspace domain)})
 
 (s/defn http-like? :- s/Bool
   [{:interface/keys [type]} :- models.application/Interface]
