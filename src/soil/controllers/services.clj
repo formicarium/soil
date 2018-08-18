@@ -13,12 +13,6 @@
             [soil.db.etcd.application :as etcd.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]))
 
-(s/defn render-service :- models.application/Application
-  [application :- models.application/Application
-   k8s-client :- protocols.k8s-client/KubernetesClient]
-  (->> (controllers.application/get-tcp-hosts application k8s-client)
-       (logic.application/render-tcp-hosts application)))
-
 (s/defn create-service! :- models.application/Application
   [service-deploy :- schemas.service/DeployService,
    devspace :- s/Str
@@ -65,4 +59,4 @@
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s-client/KubernetesClient]
   (let [{application :value} (etcd.application/get-application! devspace-name service-name etcd)]
-    (render-service application k8s-client)))
+    (controllers.application/render-application application k8s-client)))

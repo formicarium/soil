@@ -53,9 +53,9 @@
   [devspace :- models.devspace/Devspace
    k8s-client :- protocols.k8s/KubernetesClient]
   (-> devspace
-      (update-in [:devspace/hive] #(controllers.services/render-service % k8s-client))
-      (update-in [:devspace/tanajura] #(controllers.services/render-service % k8s-client))
-      (update-in [:devspace/applications] (fn [apps] (mapv #(controllers.services/render-service % k8s-client) apps)))))
+      (update-in [:devspace/hive] #(controllers.application/render-application % k8s-client))
+      (update-in [:devspace/tanajura] #(controllers.application/render-application % k8s-client))
+      (update-in [:devspace/applications] (fn [apps] (mapv #(controllers.application/render-application % k8s-client) apps)))))
 
 (s/defn create-devspace! :- models.devspace/Devspace
   [{devspace-name :name :as new-devspace} :- schemas.devspace/CreateDevspace

@@ -90,11 +90,11 @@
                                                                                        :body   (json->str service-configuration)}]
                                     (create-service-req! (:service-fn world)))))
 
-(flow "spin up a new devspace"
+#_(flow "spin up a new devspace"
     init!
-    (fn [world] (let [service (:service-fn world)]
+    #_(fn [world] (let [service (:service-fn world)]
                   (assoc world :service-health (response-for service :get "/api/health"))))
-    (fact "health must answer 200"
+    #_(fact "health must answer 200"
       (:service-health *world*) => (contains {:status 200
                                               :body   (json->str {:healthy true})}))
     #_create-env!
