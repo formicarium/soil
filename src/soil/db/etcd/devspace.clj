@@ -21,10 +21,9 @@
 
 (s/defn get-devspaces :- [models.devspace/Devspace]
   [etcd :- protocols.etcd/IEtcd]
-  (->> (protocols.etcd/get-prefix! etcd "devspaces")
+  (->> (protocols.etcd/get-prefix! etcd "devspaces/")
        (mapv :value)
        (mapv #(persistent-devspace->devspace % etcd))))
-
 
 (s/defn delete-devspace!
   [devspace-name :- s/Str

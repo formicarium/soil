@@ -9,6 +9,7 @@
             [soil.schemas.service :as schemas.service]
             [soil.controllers.application :as controllers.application]
             [soil.protocols.etcd :as protocols.etcd]
+            [soil.adapters.service :as adapters.service]
             [soil.db.etcd.application :as etcd.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]))
 
@@ -19,7 +20,8 @@
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s-client/IKubernetesClient
    config-server :- protocols.config-server-client/IConfigServerClient]
-  (-> (diplomat.config-server/get-service-application devspace service-deploy config config-server)
+  (-> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace config)
+          (diplomat.config-server/get-service-application devspace service-deploy config config-server))
       (logic.application/with-syncable-config (protocols.config/get-in! config [:formicarium :domain]))
       (controllers.application/create-application! etcd config k8s-client)))
 

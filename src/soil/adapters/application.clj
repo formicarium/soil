@@ -19,10 +19,10 @@
                                                      :syncable? (:syncable? %)}) (:containers app-definition))
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
-                                              {:devspace (:devspace app-definition)
-                                               :service  (:name app-definition)
-                                               :type     (keyword "interface.type" (name (:type %)))
-                                               :domain   domain})) (:interfaces app-definition))
+                                         {:devspace (:devspace app-definition)
+                                          :service  (:name app-definition)
+                                          :type     (keyword "interface.type" (name (:type %)))
+                                          :domain   domain})) (:interfaces app-definition))
                   :status     :application.status/template}))
 
 (s/defn application+container->container-ports :- [(s/pred map?)]
@@ -54,7 +54,8 @@
                   :replicas 1
                   :template {:metadata {:labels    {:app app-name}
                                         :namespace devspace}
-                             :spec     {:containers (application->containers application)}}}}))
+                             :spec     {:hostname   app-name
+                                        :containers (application->containers application)}}}}))
 
 (s/defn application+container->service-ports :- [(s/pred map?)]
   [application :- models.application/Application

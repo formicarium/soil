@@ -1,7 +1,8 @@
 (ns soil.components.etcd
   (:require [com.stuartsierra.component :as component]
             [soil.protocols.etcd :as protocols.etcd]
-            [clj-service.protocols.config :as protocols.config])
+            [clj-service.protocols.config :as protocols.config]
+            [clj-service.exception :as exception])
   (:import (com.ibm.etcd.client EtcdClient)
            (com.google.protobuf ByteString)
            (com.ibm.etcd.client.kv EtcdKvClient KvClient$FluentPutRequest KvClient$FluentRangeRequest)
@@ -75,8 +76,13 @@
   (put! [this key value]
     (put-clj (:kv-client this) key value))
 
-  (get! [this key]
+  (get-maybe [this key]
     (first (get-clj (:kv-client this) key false)))
+
+  (get! [this key]
+    (or (protocols.etcd/get-maybe this key)
+        (exception/not-found! {:key-not-found key
+                               :log           :etcd-get-error})))
 
   (get-prefix! [this key]
     (get-clj (:kv-client this) key true))

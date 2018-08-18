@@ -28,7 +28,7 @@
 
 (s/defn devspace-name->application-prefix
   [devspace-name :- s/Str]
-  (clojure.string/join "." ["applications" devspace-name ""]))
+  (str "applications/" devspace-name))
 
 (s/defn devspace-name->key :- s/Str
   [devspace-name :- s/Str]

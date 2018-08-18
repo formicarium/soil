@@ -1,6 +1,6 @@
 {:port               8080
- :soil               {:version "0.1.3"}
+ :version            "0.1.9"
+ :skip-kubectl-proxy false
  :etcd               {:endpoint "localhost"
-                      :port     2379}
- :skip-kubectl-proxy false}
+                      :port     2379}}
 
