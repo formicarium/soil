@@ -6,95 +6,54 @@ version: 2
 jobs:
   test:
     docker:
-      - image: circleci/clojure:lein-2.7.1
+    - image: circleci/clojure:lein-2.7.1
     working_directory: ~/repo
-
     environment:
       LEIN_ROOT: "true"
-      # Customize the JVM maximum heap limit
       JVM_OPTS: -Xmx3200m
-
     steps:
-      - checkout
+    - checkout
+    - restore_cache:
+        keys:
+        - v1-dependencies-{{ checksum "project.clj" }}
+        - v1-dependencies-
+    - run: lein deps
+    - save_cache:
+        paths:
+        - ~/.m2
+        key: v1-dependencies-{{ checksum "project.clj" }}
+    - run: lein midje
 
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "project.clj" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
-      - run: lein deps
-
-      - save_cache:
-          paths:
-            - ~/.m2
-          key: v1-dependencies-{{ checksum "project.clj" }}
-
-      # run tests!
-      - run: lein midje
-  build-artifact:
+  check-version:
     docker:
-      - image: circleci/clojure:lein-2.7.1
+    - image: circleci/clojure:lein-2.7.1
     working_directory: ~/repo
+    steps:
+    - run: ./check-version.sh
 
-    environment:
-      LEIN_ROOT: "true"
-      # Customize the JVM maximum heap limit
-      JVM_OPTS: -Xmx3200m
-    steps:
-      - checkout
-      - run: lein uberjar
-      - store_artifacts:
-          path: ~/repo/target/soil-0.0.1-SNAPSHOT-standalone.jar
-          destination: jars/soil-${CIRCLE_SHA1}.jar
-      - persist_to_workspace:
-          root: ~/repo/target
-          paths:
-            - soil-0.0.1-SNAPSHOT-standalone.jar
-  build-docker:
+  build-and-push:
     machine: true
     working_directory: ~/repo
     steps:
-      - checkout
-      - attach_workspace:
-          at: target
-      - run: docker build -t soil:circleci .
-      - run: docker save -o soil-${CIRCLE_SHA1}.tar soil:circleci
-      - persist_to_workspace:
-          root: ~/repo
-          paths:
-            - soil-*.tar
-  publish-image:
-    machine: true
-    working_directory: ~/repo
-    steps:
-      - attach_workspace:
-          at: ~/repo
-      - run: docker load -i soil-${CIRCLE_SHA1}.tar
-      - deploy:
-          name: publish
-          command: |
-            docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
-            docker tag soil:circleci formicarium/soil:$CIRCLE_SHA1
-            docker push formicarium/soil:$CIRCLE_SHA1
+    - attach_workspace:
+        at: ~/repo
+    - run:
+        name: build-and-publish
+        command: |
+          docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
+          ./build.sh
+
+
 workflows:
   version: 2
   soil_workflow:
     jobs:
-      - test
-      - build-artifact:
-          requires:
-            - test
-      - build-docker:
-          requires:
-            - build-artifact
-          filters:
-            branches:
-              only: master
-      - publish-image:
-          requires:
-            - build-docker
-          filters:
-            branches:
-              only: master
+    - test
+    - check-version
+    - build-and-push:
+        requires:
+        - check-version
+        - test
+        filters:
+          branches:
+            only: master
