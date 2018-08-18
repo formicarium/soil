@@ -30,11 +30,11 @@
 
 (s/defn http-like? :- s/Bool
   [{:interface/keys [type]} :- models.application/Interface]
-  (#{:interface.type/http :interface.type/https} type))
+  (boolean (#{:interface.type/http :interface.type/https} type)))
 
 (s/defn tcp-like? :- s/Bool
   [{:interface/keys [type]} :- models.application/Interface]
-  (#{:interface.type/nrepl :interface.type/tcp} type))
+  (boolean (#{:interface.type/nrepl :interface.type/tcp} type)))
 
 (s/defn exposed? :- s/Bool
   [{:interface/keys [expose?]} :- models.application/Interface]

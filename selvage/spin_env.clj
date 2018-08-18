@@ -90,7 +90,7 @@
                                                                                        :body   (json->str service-configuration)}]
                                     (create-service-req! (:service-fn world)))))
 
-(flow "spin up a new devspace"
+#_(flow "spin up a new devspace"
     init!
     (fn [world] (let [service (:service-fn world)]
                   (assoc world :service-health (response-for service :get "/api/health"))))

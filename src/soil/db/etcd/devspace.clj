@@ -28,7 +28,7 @@
 (s/defn delete-devspace!
   [devspace-name :- s/Str
    etcd :- protocols.etcd/IEtcd]
-  (protocols.etcd/delete-prefix! etcd (adapters.devspace/devspace-name->key devspace-name)))
+  (protocols.etcd/delete! etcd (adapters.devspace/devspace-name->key devspace-name)))
 
 (s/defn get-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str
