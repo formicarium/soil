@@ -16,7 +16,7 @@
    k8s-client :- protocols.k8s-client/IKubernetesClient]
   (let [node-ip (diplomat.kubernetes/get-pod-node-ip application k8s-client)
         node-ports (diplomat.kubernetes/get-applications-node-ports application k8s-client)]
-    (->> (logic.application/get-tcp-interfaces application)
+    (->> (logic.application/get-tcp-like-interfaces application)
          (mapv (fn [{:interface/keys [name]}]
                  [name (str node-ip ":" (get node-ports name))]))
          (into {}))))

@@ -50,7 +50,7 @@
   [application :- models.application/Application
    ingress-config :- (s/pred map?)
    k8s-client :- protocols.k8s/KubernetesClient]
-  (get-tcp-available-ports (count (logic.application/get-tcp-interfaces application))
+  (get-tcp-available-ports (count (logic.application/get-tcp-like-interfaces application))
                            ingress-config
                            k8s-client))
 

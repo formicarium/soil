@@ -9,13 +9,9 @@
   (->> interfaces
        (filter #(= (:container/name container) (:interface/container %)))))
 
-(s/defn get-tcp-interfaces :- [models.application/Interface]
+(s/defn get-tcp-like-interfaces :- [models.application/Interface]
   [{:application/keys [interfaces]} :- models.application/Application]
-  (filter #(= (:interface/type %) :interface.type/tcp) interfaces))
-
-(s/defn get-non-tcp-interfaces :- [models.application/Interface]
-  [{:application/keys [interfaces]} :- models.application/Application]
-  (filter #(not= (:interface/type %) :interface.type/tcp) interfaces))
+  (filter logic.interface/tcp-like? interfaces))
 
 (s/defn make-container-syncable :- models.application/Container
   [{:application/keys [name]} :- models.application/Application
@@ -87,14 +83,14 @@
 (s/defn get-config-map :- {:data {s/Keyword s/Str}}
   [{:application/keys [name devspace] :as application} :- models.application/Application
    ports :- [s/Int]]
-  {:data (->> (get-tcp-interfaces application)
+  {:data (->> (get-tcp-like-interfaces application)
               (mapv (fn [{:interface/keys [port]}] (logic.interface/tcp-entry name devspace port)))
               (zipmap (mapv (comp keyword str) ports)))})
 
 (s/defn get-erase-config-map :- {:data {s/Keyword s/Str}}
   [application :- models.application/Application
    ports :- [s/Int]]
-  {:data (->> (repeat (count (get-tcp-interfaces application)) nil)
+  {:data (->> (repeat (count (get-tcp-like-interfaces application)) nil)
               (zipmap (mapv (comp keyword str) ports)))})
 
 (s/defn get-interface-by-name

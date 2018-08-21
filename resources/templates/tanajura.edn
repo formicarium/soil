@@ -1,7 +1,7 @@
 {:name       "tanajura"
  :devspace   "{{devspace}}"
  :containers [{:name      "tanajura"
-               :image     "formicarium/tanajura:1.7.1"
+               :image     "formicarium/tanajura:1.8.0"
                :syncable? false
                :env       {"DEVSPACE" "{{devspace}}"}}]
  :interfaces [{:name      "default"

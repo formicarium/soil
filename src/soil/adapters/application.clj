@@ -106,7 +106,7 @@
 (s/defn application->config-map :- (s/pred map?)
   [ports :- [s/Int]
    {:application/keys [devspace] :as application} :- models.application/Application]
-  (let [tcp-interfaces (logic.application/get-tcp-interfaces application)]
+  (let [tcp-interfaces (logic.application/get-tcp-like-interfaces application)]
     (if (>= (count ports)
             (count tcp-interfaces))
       {:data (->> tcp-interfaces
