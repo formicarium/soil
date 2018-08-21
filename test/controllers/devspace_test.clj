@@ -11,9 +11,9 @@
 
 (s/without-fn-validation
   (fact "Delete devspace"
-        (controllers.devspaces/delete-devspace! ..env-name.. ..etcd.. ..k8s-client..) => irrelevant
-        (provided
-          (protocols.etcd/delete-prefix! ..etcd.. "devspaces/..env-name..") => irrelevant
-          (protocols.etcd/delete-prefix! ..etcd.. "applications/..env-name..") => irrelevant
-          (protocols.k8s/delete-namespace! ..k8s-client.. ..env-name..) => irrelevant)))
+    (controllers.devspaces/delete-devspace! "test" ..etcd.. ..k8s-client..) => irrelevant
+    (provided
+      (protocols.etcd/delete-prefix! ..etcd.. "applications/test") => irrelevant
+      (protocols.etcd/delete! ..etcd.. "devspaces/test") => irrelevant
+      (protocols.k8s/delete-namespace! ..k8s-client.. "test") => irrelevant)))
 
