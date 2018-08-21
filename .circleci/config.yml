@@ -53,9 +53,6 @@ jobs:
     working_directory: ~/repo
     steps:
     - attach_workspace:
-        at: target
-    - checkout
-    - attach_workspace:
         at: ~/repo
     - run:
         name: build-and-publish
