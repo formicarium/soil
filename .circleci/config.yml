@@ -38,18 +38,13 @@ jobs:
     - image: circleci/clojure:lein-2.7.1
     steps:
     - checkout
-    - attach_workspace:
-        at: ~/repo
     - run:
         name: build
         command: ./build.sh
     - persist_to_workspace:
-        root: ~/repo
+        root: /home/circleci
         paths:
-          - push.sh
-          - resources/base.edn
-          - target/soil-0.0.1-SNAPSHOT-standalone.jar
-
+          - repo
   publish:
     machine: true
     working_directory: ~/repo
