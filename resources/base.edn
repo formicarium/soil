@@ -1,5 +1,5 @@
 {:port               8080
- :version            "0.1.12"
+ :version            "0.1.13"
  :skip-kubectl-proxy false
  :etcd               {:endpoint "localhost"
                       :port     2379}}
