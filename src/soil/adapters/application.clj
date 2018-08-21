@@ -78,6 +78,7 @@
      :spec       {:ports    (->> (:application/containers application)
                                  (mapv #(application+container->service-ports application %))
                                  (flatten))
+                  :type "NodePort"
                   :selector {:app app-name}}}))
 
 (s/defn application+interface->ingress-rule :- (s/pred map?)
@@ -117,7 +118,7 @@
 
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
-  (->> (logic.application/get-non-tcp-interfaces application)
+  (->> (:application/interfaces application)
        (mapv (fn [{:interface/keys [name host type]}] {name (str (clojure.core/name type) "://" host)}))
        (apply merge)))
 

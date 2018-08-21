@@ -1,6 +1,10 @@
 #merge [#include "base.edn"
         {:env           "dev"
          :config-server {:url "http://localhost:8081"}
-         :kubernetes    {:proxy {:url "http://localhost:9000"}}
+         :kubernetes    {:proxy {:url "http://localhost:9000"}
+                         :ingress-config-map {:name "my-nginx-nginx-ingress-tcp"
+                                              :namespace "default"
+                                              :max-port 5000
+                                              :min-port 4000}}
          :formicarium   {:domain "formicarium.host"}
          :skip-kubectl-proxy false}]

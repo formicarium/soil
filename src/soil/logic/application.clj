@@ -83,3 +83,27 @@
 (s/defn but-hive-tanajura :- [models.application/Application]
   [applications :- [models.application/Application]]
   (remove #(or (tanajura? %) (hive? %)) applications))
+
+(s/defn get-config-map :- {:data {s/Keyword s/Str}}
+  [{:application/keys [name devspace] :as application} :- models.application/Application
+   ports :- [s/Int]]
+  {:data (->> (get-tcp-interfaces application)
+              (mapv (fn [{:interface/keys [port]}] (logic.interface/tcp-entry name devspace port)))
+              (zipmap (mapv (comp keyword str) ports)))})
+
+(s/defn get-erase-config-map :- {:data {s/Keyword s/Str}}
+  [application :- models.application/Application
+   ports :- [s/Int]]
+  {:data (->> (repeat (count (get-tcp-interfaces application)) nil)
+              (zipmap (mapv (comp keyword str) ports)))})
+
+(s/defn get-interface-by-name
+  [{:application/keys [interfaces]} :- models.application/Application
+   interface-name :- s/Str]
+  (filter #(= interface-name (:interface/name %)) interfaces))
+
+(s/defn render-tcp-hosts :- models.application/Application
+  [{:application/keys [interfaces] :as application} :- models.application/Application
+   tcp-hosts :- {s/Str s/Str}]
+  (assoc application :application/interfaces
+                     (mapv (fn [interface] (logic.interface/render-interface interface tcp-hosts)) interfaces)))

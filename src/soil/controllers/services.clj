@@ -9,8 +9,9 @@
             [soil.schemas.service :as schemas.service]
             [soil.controllers.application :as controllers.application]
             [soil.protocols.etcd :as protocols.etcd]
+            [soil.adapters.service :as adapters.service]
             [soil.db.etcd.application :as etcd.application]
-            [soil.adapters.service :as adapters.service]))
+            [soil.diplomat.kubernetes :as diplomat.kubernetes]))
 
 (s/defn create-service! :- models.application/Application
   [service-deploy :- schemas.service/DeployService,
@@ -22,7 +23,7 @@
   (-> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace config)
           (diplomat.config-server/get-service-application devspace service-deploy config config-server))
       (logic.application/with-syncable-config (protocols.config/get-in! config [:formicarium :domain]))
-      (controllers.application/create-application! etcd k8s-client)))
+      (controllers.application/create-application! etcd config k8s-client)))
 
 (s/defn ^:private try-delete :- s/Str
   [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s-client/KubernetesClient s/Str s/Str]])
@@ -39,15 +40,23 @@
   [service-name :- s/Str
    devspace :- s/Str
    etcd :- protocols.etcd/IEtcd
+   config :- protocols.config/IConfig
    k8s-client :- protocols.k8s-client/KubernetesClient]
-  (etcd.application/delete-application! service-name devspace etcd)
-  {:deployment   (try-delete protocols.k8s-client/delete-deployment! service-name devspace k8s-client)
-   :service      (try-delete protocols.k8s-client/delete-service! service-name devspace k8s-client)
-   :ingress      (try-delete protocols.k8s-client/delete-ingress! service-name devspace k8s-client)
-   :tcp-services "not-yet-implemented"})
+  (let [{application :value} (etcd.application/get-application! devspace service-name etcd)]
+    (etcd.application/delete-application! service-name devspace etcd)
+    {:deployment   (try-delete protocols.k8s-client/delete-deployment! service-name devspace k8s-client)
+     :service      (try-delete protocols.k8s-client/delete-service! service-name devspace k8s-client)
+     :ingress      (try-delete protocols.k8s-client/delete-ingress! service-name devspace k8s-client)
+     :tcp-services (try (diplomat.kubernetes/delete-tcp-config-map-entries! application config k8s-client)
+                        "deleted"
+                        (catch Exception e
+                          (.printStackTrace e)
+                          "not-deleted"))}))
 
 (s/defn one-service :- models.application/Application
   [devspace-name :- s/Str
    service-name :- s/Str
-   etcd :- protocols.etcd/IEtcd]
-  (:value (etcd.application/get-application! devspace-name service-name etcd)))
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s-client/KubernetesClient]
+  (let [{application :value} (etcd.application/get-application! devspace-name service-name etcd)]
+    (controllers.application/render-application application k8s-client)))

@@ -71,6 +71,7 @@
                             :name       "repl"
                             :port       35000
                             :targetPort "repl"}]
+                :type "NodePort"
                 :selector {:app "kratos"}}})
 
 

@@ -3,6 +3,7 @@
             [soil.models.devspace :as models.devspace]
             [soil.logic.devspace :as logic.devspace]
             [soil.logic.services :as logic.service]
+            [soil.controllers.services :as controllers.services]
             [soil.adapters.application :as adapters.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]
             [clj-service.protocols.config :as protocols.config]
@@ -45,8 +46,16 @@
    k8s-client :- protocols.k8s/IKubernetesClient]
   (map #(-> (assoc % :devspace devspace-name)
             (adapters.application/definition->application config)
-            (controllers.application/create-application! etcd k8s-client))
-    setup-apps))
+            (controllers.application/create-application! etcd config k8s-client))
+       setup-apps))
+
+(s/defn render-devspace :- models.devspace/Devspace
+  [devspace :- models.devspace/Devspace
+   k8s-client :- protocols.k8s/KubernetesClient]
+  (-> devspace
+      (update-in [:devspace/hive] #(controllers.application/render-application % k8s-client))
+      (update-in [:devspace/tanajura] #(controllers.application/render-application % k8s-client))
+      (update-in [:devspace/applications] (fn [apps] (mapv #(controllers.application/render-application % k8s-client) apps)))))
 
 (s/defn create-devspace! :- models.devspace/Devspace
   [{devspace-name :name :as new-devspace} :- schemas.devspace/CreateDevspace
@@ -57,19 +66,23 @@
   (etcd.devspace/create-devspace! devspace-name etcd)
   #:devspace{:name         devspace-name
              :hive         (-> (hive-application devspace-name config)
-                               (controllers.application/create-application! etcd k8s-client))
+                               (controllers.application/create-application! etcd config k8s-client))
              :tanajura     (-> (tanajura-application devspace-name config)
-                               (controllers.application/create-application! etcd k8s-client))
+                               (controllers.application/create-application! etcd config k8s-client))
              :applications (create-setup! new-devspace config etcd k8s-client)})
 
+
 (s/defn get-devspaces :- [models.devspace/Devspace]
-  [etcd :- protocols.etcd/IEtcd]
-  (etcd.devspace/get-devspaces etcd))
+  [etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s/KubernetesClient]
+  (mapv #(render-devspace % k8s-client) (etcd.devspace/get-devspaces etcd)))
 
 (s/defn one-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str
-   etcd :- protocols.etcd/IEtcd]
-  (etcd.devspace/get-devspace devspace-name etcd))
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s/KubernetesClient]
+  (-> (etcd.devspace/get-devspace devspace-name etcd)
+      (render-devspace k8s-client)))
 
 (s/defn delete-devspace!
   [devspace :- s/Str
