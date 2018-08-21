@@ -55,7 +55,6 @@ jobs:
         name: publish
         command: |
           docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
-          find .
           ./push.sh
 
 
