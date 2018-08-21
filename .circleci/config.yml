@@ -44,9 +44,10 @@ jobs:
         name: build
         command: ./build.sh
     - persist_to_workspace:
-        root: target
+        root: ~/repo
         paths:
-          - soil-0.0.1-SNAPSHOT-standalone.jar
+          - push.sh
+          - target/soil-0.0.1-SNAPSHOT-standalone.jar
 
   publish:
     machine: true
