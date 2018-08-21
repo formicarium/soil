@@ -37,6 +37,7 @@ jobs:
     docker:
     - image: circleci/clojure:lein-2.7.1
     steps:
+    - checkout
     - attach_workspace:
         at: ~/repo
     - run:
@@ -47,6 +48,7 @@ jobs:
     machine: true
     working_directory: ~/repo
     steps:
+    - checkout
     - attach_workspace:
         at: ~/repo
     - run:
