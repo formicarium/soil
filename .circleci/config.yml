@@ -32,7 +32,18 @@ jobs:
     - checkout
     - run: ./check-version.sh
 
-  build-and-push:
+  build:
+    working_directory: ~/repo
+    docker:
+    - image: circleci/clojure:lein-2.7.1
+    steps:
+    - attach_workspace:
+        at: ~/repo
+    - run:
+        name: build
+        command: ./build.sh
+
+  publish:
     machine: true
     working_directory: ~/repo
     steps:
@@ -42,7 +53,7 @@ jobs:
         name: build-and-publish
         command: |
           docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
-          ./build.sh
+          ./push.sh
 
 
 workflows:
@@ -51,10 +62,16 @@ workflows:
     jobs:
     - test
     - check-version
-    - build-and-push:
+    - build:
         requires:
         - check-version
         - test
+        filters:
+          branches:
+            only: master
+    - publish:
+        requires:
+        - build
         filters:
           branches:
             only: master
