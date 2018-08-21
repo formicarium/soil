@@ -50,9 +50,9 @@ jobs:
     working_directory: ~/repo
     steps:
     - attach_workspace:
-        at: ~/repo
+        at: /home/circleci
     - run:
-        name: build-and-publish
+        name: publish
         command: |
           docker login -u $DOCKERHUB_LOGIN -p $DOCKERHUB_PASSWORD
           find .
