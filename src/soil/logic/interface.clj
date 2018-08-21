@@ -51,11 +51,6 @@
        first
        :address))
 
-(s/defn tcp? :- s/Bool
-  [{:interface/keys [type]} :- models.application/Interface]
-  (= type :interface.type/tcp))
-
-
 (s/defn render-interface-tcp-host :- models.application/Interface
   [interface :- models.application/Interface
    host :- s/Str]
@@ -65,6 +60,6 @@
 (s/defn render-interface
   [interface :- models.application/Interface
    tcp-hosts :- {s/Str s/Str}]
-  (if (tcp? interface)
+  (if (tcp-like? interface)
     (render-interface-tcp-host interface (get tcp-hosts (:interface/name interface)))
     interface))
