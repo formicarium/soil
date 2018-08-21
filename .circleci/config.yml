@@ -43,11 +43,17 @@ jobs:
     - run:
         name: build
         command: ./build.sh
+    - persist_to_workspace:
+        root: target
+        paths:
+          - soil-0.0.1-SNAPSHOT-standalone.jar
 
   publish:
     machine: true
     working_directory: ~/repo
     steps:
+    - attach_workspace:
+        at: target
     - checkout
     - attach_workspace:
         at: ~/repo
