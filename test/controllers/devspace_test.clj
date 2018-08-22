@@ -7,12 +7,14 @@
             [clj-service.protocols.config :as protocols.config]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]
             [schema.core :as s]
-            [soil.protocols.etcd :as protocols.etcd]))
+            [soil.protocols.etcd :as protocols.etcd]
+            [soil.controllers.devspaces :as controllers.devspace]))
 
 (s/without-fn-validation
   (fact "Delete devspace"
     (controllers.devspaces/delete-devspace! "test" ..etcd.. ..k8s-client..) => irrelevant
     (provided
+      (controllers.devspace/check-if-devspace-exists "test" ..etcd..) => "test"
       (protocols.etcd/delete-prefix! ..etcd.. "applications/test") => irrelevant
       (protocols.etcd/delete! ..etcd.. "devspaces/test") => irrelevant
       (protocols.k8s/delete-namespace! ..k8s-client.. "test") => irrelevant)))

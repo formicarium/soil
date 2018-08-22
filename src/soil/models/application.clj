@@ -13,7 +13,7 @@
                              :interface.type/nrepl
                              :interface.type/udp))
 
-(s/defschema Interface {:interface/name                     s/Str
+(s/defschema Interface {:interface/name                     s/Str ;; TODO: MUST HAVE LESS THAN 15 CHARS - KUBERNETES REQUIREMENT
                         :interface/port                     s/Int
                         (s/optional-key :interface/expose?) s/Bool
                         :interface/type                     InterfaceType

@@ -13,6 +13,18 @@
   [{:application/keys [interfaces]} :- models.application/Application]
   (filter logic.interface/tcp-like? interfaces))
 
+(s/defn get-http-like-interfaces :- [models.application/Interface]
+  [{:application/keys [interfaces]} :- models.application/Application]
+  (filter logic.interface/http-like? interfaces))
+
+(s/defn has-http-like-interfaces :- s/Bool
+  [application :- models.application/Application]
+  (> (count (get-http-like-interfaces application)) 0))
+
+(s/defn has-tcp-like-interfaces :- s/Bool
+  [application :- models.application/Application]
+  (> (count (get-tcp-like-interfaces application)) 0))
+
 (s/defn make-container-syncable :- models.application/Container
   [{:application/keys [name]} :- models.application/Application
    {:container/keys [syncable? env] :as container} :- models.application/Container]

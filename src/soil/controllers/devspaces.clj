@@ -15,7 +15,8 @@
             [soil.db.etcd.devspace :as etcd.devspace]
             [soil.protocols.etcd :as protocols.etcd]
             [soil.db.etcd.application :as etcd.application]
-            [soil.schemas.devspace :as schemas.devspace]))
+            [soil.schemas.devspace :as schemas.devspace]
+            [clj-service.exception :as exception]))
 
 (s/defn ^:private load-application-template :- models.application/Application
   [name :- s/Str
@@ -84,11 +85,21 @@
   (-> (etcd.devspace/get-devspace devspace-name etcd)
       (render-devspace k8s-client)))
 
+(s/defn check-if-devspace-exists :- (s/maybe models.devspace/Devspace)
+  [devspace-name :- s/Str
+   etcd :- protocols.etcd/IEtcd]
+  ((->> (etcd.devspace/get-devspaces etcd)
+        (mapv :devspace/name)
+        set) devspace-name))
+
 (s/defn delete-devspace!
   [devspace :- s/Str
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (protocols.k8s/delete-namespace! k8s-client devspace)
-  (etcd.devspace/delete-devspace! devspace etcd)
-  (etcd.application/delete-all-applications! devspace etcd))
+  (if-let [deleteable-devspace (check-if-devspace-exists devspace etcd)]
+    (do
+      (protocols.k8s/delete-namespace! k8s-client deleteable-devspace)
+      (etcd.devspace/delete-devspace! deleteable-devspace etcd)
+      (etcd.application/delete-all-applications! deleteable-devspace etcd))
+    (exception/not-found! {:log (str "Devspace " devspace " does not exist")})))
 
