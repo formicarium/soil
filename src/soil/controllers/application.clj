@@ -34,7 +34,9 @@
    k8s-client :- protocols.k8s-client/IKubernetesClient]
   (diplomat.kubernetes/create-deployment! application k8s-client)
   (diplomat.kubernetes/create-service! application k8s-client)
-  (diplomat.kubernetes/create-ingress! application k8s-client)
-  (diplomat.kubernetes/add-tcp-config-map-entries! application config k8s-client)
+  (when (logic.application/has-http-like-interfaces application)
+    (diplomat.kubernetes/create-ingress! application k8s-client))
+  (when (logic.application/has-tcp-like-interfaces application)
+    (diplomat.kubernetes/add-tcp-config-map-entries! application config k8s-client))
   (etcd.application/create-application! application etcd)
   (render-application application k8s-client))
