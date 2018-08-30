@@ -32,7 +32,7 @@
    etcd :- protocols.etcd/IEtcd
    config :- protocols.config/IConfig
    k8s-client :- protocols.k8s-client/IKubernetesClient]
-  (diplomat.kubernetes/create-deployment! application k8s-client)
+  (diplomat.kubernetes/create-deployment! application k8s-client config)
   (diplomat.kubernetes/create-service! application k8s-client)
   (when (logic.application/has-http-like-interfaces application)
     (diplomat.kubernetes/create-ingress! application k8s-client))

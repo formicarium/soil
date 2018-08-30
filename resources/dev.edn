@@ -3,6 +3,7 @@
          :domain             "formicarium.host"
          :config-server      {:url "http://localhost:8081"}
          :kubernetes         {:url "http://localhost:9000"
+                              :image-pull-secrets []
                               :token-filepath     "/secrets/token"
                               :ingress-config-map {:name      "my-nginx-nginx-ingress-tcp"
                                                    :namespace "default"
