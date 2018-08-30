@@ -22,7 +22,7 @@
    config-server :- protocols.config-server-client/IConfigServerClient]
   (-> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace config)
           (diplomat.config-server/get-service-application devspace service-deploy config config-server))
-      (logic.application/with-syncable-config (protocols.config/get-in! config [:formicarium :domain]))
+      (logic.application/with-syncable-config (protocols.config/get! config :domain))
       (controllers.application/create-application! etcd config k8s-client)))
 
 (s/defn ^:private try-delete :- s/Str
