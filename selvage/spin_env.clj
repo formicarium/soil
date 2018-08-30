@@ -12,7 +12,7 @@
             [clojure.java.io :as io])
   (:use org.httpkit.fake))
 (def test-config (aero/read-config (io/resource "test.edn")))
-(def kubernetes-proxy-url (get-in test-config [:kubernetes :proxy :url]))
+(def kubernetes-proxy-url (get-in test-config [:kubernetes :url]))
 (def configserver-url (get-in test-config [:config-server :url]))
 
 (defn expose-service

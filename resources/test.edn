@@ -2,7 +2,8 @@
         {:env                "test"
          :domain             "formicarium.host"
          :config-server      {:url "https://configserver.com"}
-         :kubernetes         {:proxy              {:url "http://localhost:9000"}
+         :kubernetes         {:url                "http://localhost:9000"
+                              :token-filepath     "/etc/hosts"
                               :ingress-config-map {:name      "my-nginx-nginx-ingress-tcp"
                                                    :namespace "default"
                                                    :max-port  5000
