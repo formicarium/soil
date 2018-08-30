@@ -2,7 +2,8 @@
         {:env                "prod"
          :domain             #or [#env DOMAIN "formicarium.host"]
          :config-server      {:url #or [#env CONFIG_SERVER_URL "http://config-server.formicarium.host"]}
-         :kubernetes         {:proxy              {:url "http://localhost:9000"}
+         :kubernetes         {:url                #or [#env KUBERNETES_URL "http://localhost:9000"]
+                              :token-filepath     "/var/run/secrets/kubernetes.io/serviceaccount/token"
                               :ingress-config-map {:name      #or [#env INGRESS_CONFIG_MAP_NAME "fmc-ingress-tcp"]
                                                    :namespace "fmc-infra"
                                                    :max-port  5000

@@ -167,7 +167,10 @@
 
   component/Lifecycle
   (start [this]
-    (let [ctx (k8s/make-context (protocols.config/get-in! config [:kubernetes :proxy :url]))]
+    (let [kubernetes-url (protocols.config/get-in! config [:kubernetes :url])
+          token-filepath (protocols.config/get-in! config [:kubernetes :token-filepath])
+
+          ctx (k8s/make-context kubernetes-url {:token (slurp token-filepath)})]
       (assoc this
         :ctx ctx
         :health (check-api-health ctx))))
