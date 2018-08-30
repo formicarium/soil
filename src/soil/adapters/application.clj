@@ -10,7 +10,7 @@
 (s/defn definition->application :- models.application/Application
   [app-definition :- schemas.application/ApplicationDefinition
    config :- protocols.config/IConfig]
-  (let [domain (protocols.config/get-in! config [:formicarium :domain])]
+  (let [domain (protocols.config/get! config :domain)]
     #:application{:name       (:name app-definition)
                   :devspace   (:devspace app-definition)
                   :containers (mapv #(do #:container{:name      (:name %)

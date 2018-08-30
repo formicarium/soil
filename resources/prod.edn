@@ -1,12 +1,12 @@
 #merge [#include "base.edn"
         {:env                "prod"
-         :config-server      {:url "http://config-server.formicarium.host"}
-         :kubernetes         {:proxy {:url "http://localhost:9000"}
-                              :ingress-config-map {:name "my-nginx-nginx-ingress-tcp"
-                                                   :namespace "default"
-                                                   :max-port 5000
-                                                   :min-port 4000}}
-         :formicarium        {:domain "formicarium.host"}
-         :etcd               {:endpoint "fmc-etcd-client"
-                              :port     2379}
+         :domain             #or [#env DOMAIN "formicarium.host"]
+         :config-server      {:url #or [#env CONFIG_SERVER_URL "http://config-server.formicarium.host"]}
+         :kubernetes         {:proxy              {:url "http://localhost:9000"}
+                              :ingress-config-map {:name      #or [#env INGRESS_CONFIG_MAP_NAME "fmc-ingress-tcp"]
+                                                   :namespace "fmc-infra"
+                                                   :max-port  5000
+                                                   :min-port  4000}}
+         :etcd               {:endpoint #or [#env ETCD_ENDPOINT "fmc-etcd-client"]
+                              :port     #or [#env ETCD_PORT 2379]}
          :skip-kubectl-proxy false}]
