@@ -5,7 +5,6 @@
             [clj-service.components.config :as components.config]
             [clj-service.components.webapp :as components.webapp]
             [soil.components.kubernetes-client :as components.kubernetes-client]
-            [soil.components.kubernetes-api-server :as components.kubernetes-api-server]
             [soil.components.etcd :as components.etcd]
             [soil.components.config-server-client :as components.config-server-client]))
 
