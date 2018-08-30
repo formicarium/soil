@@ -3,7 +3,7 @@
          :domain             "formicarium.host"
          :config-server      {:url "https://configserver.com"}
          :kubernetes         {:url                "http://localhost:9000"
-                              :token-filepath     "/secrets/token"
+                              :token-filepath     "/etc/hosts"
                               :ingress-config-map {:name      "my-nginx-nginx-ingress-tcp"
                                                    :namespace "default"
                                                    :max-port  5000
