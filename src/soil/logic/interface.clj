@@ -44,12 +44,24 @@
   (str devspace "/" service-name ":" port))
 
 
-(s/defn get-node-ip :- s/Str
+(s/defn get-node-internal-ip :- s/Str
+  [node :- (s/pred map?)]
+  (->> (get-in node [:status :addresses])
+       (filter (fn [{:keys [type]}] (= type "InternalIP")))
+       first
+       :address))
+
+(s/defn get-node-external-ip :- s/Str
   [node :- (s/pred map?)]
   (->> (get-in node [:status :addresses])
        (filter (fn [{:keys [type]}] (= type "ExternalIP")))
        first
        :address))
+
+(s/defn get-node-ip :- s/Str
+  [node :- (s/pred map?)]
+  (or (get-node-external-ip node)
+      (get-node-internal-ip node)))
 
 (s/defn render-interface-tcp-host :- models.application/Interface
   [interface :- models.application/Interface
