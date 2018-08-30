@@ -42,7 +42,8 @@
                               :value (str (val %))}) (:container/env container))}) containers))
 
 (s/defn application->deployment :- (s/pred map?)
-  [{:application/keys [devspace] :as application} :- models.application/Application]
+  [{:application/keys [devspace] :as application} :- models.application/Application
+   image-pull-secrets :- [s/Str]]
   (prn application)
   (let [app-name (:application/name application)]
     {:apiVersion "apps/v1"
@@ -54,8 +55,9 @@
                   :replicas 1
                   :template {:metadata {:labels    {:app app-name}
                                         :namespace devspace}
-                             :spec     {:hostname   app-name
-                                        :containers (application->containers application)}}}}))
+                             :spec     {:hostname         app-name
+                                        :containers       (application->containers application)
+                                        :imagePullSecrets (mapv #(do {:name %}) (keep identity image-pull-secrets))}}}}))
 
 (s/defn application+container->service-ports :- [(s/pred map?)]
   [application :- models.application/Application

@@ -2,6 +2,7 @@
   (:require [midje.sweet :refer :all]
             [soil.adapters.application :as adapters.application]
             [schema.core :as s]
+            [clj-service.test-helpers :as th]
             [soil.models.application :as models.application]))
 (s/set-fn-validation! true)
 
@@ -51,11 +52,12 @@
                                                             {:name  "APP_PATH"
                                                              :value "/app"}
                                                             {:name  "STINGER_SCRIPTS"
-                                                             :value "/scripts"}]}]}}}})
+                                                             :value "/scripts"}]}]
+                                      :imagePullSecrets [{:name "docker-registry-secret"}]}}}})
 
 
 (fact "externalize application to deployment"
-  (adapters.application/application->deployment kratos-application) => kratos-deployment)
+  (adapters.application/application->deployment kratos-application ["docker-registry-secret"]) => kratos-deployment)
 
 (def kratos-service
   {:apiVersion "v1"

@@ -18,8 +18,9 @@
 
 (s/defn create-deployment!
   [application :- models.application/Application
-   k8s-client :- protocols.k8s/KubernetesClient]
-  (->> (adapters.application/application->deployment application)
+   k8s-client :- protocols.k8s/KubernetesClient
+   config :- protocols.config/IConfig]
+  (->> (adapters.application/application->deployment application (protocols.config/get-in-maybe config [:kubernetes :image-pull-secrets]))
        (protocols.k8s/create-deployment! k8s-client)))
 
 (s/defn create-service!
