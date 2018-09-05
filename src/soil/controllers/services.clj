@@ -13,17 +13,24 @@
             [soil.db.etcd.application :as etcd.application]
             [soil.diplomat.kubernetes :as diplomat.kubernetes]))
 
-(s/defn create-service! :- models.application/Application
+(s/defn ^:private create-one-application :- models.application/Application
+  [application :- models.application/Application
+   config :- protocols.config/IConfig
+   etcd :- protocols.etcd/IEtcd
+   k8s-client :- protocols.k8s-client/IKubernetesClient]
+  (-> (logic.application/with-syncable-config application (protocols.config/get! config :domain))
+      (controllers.application/create-application! etcd config k8s-client)))
+
+(s/defn create-service! :- [models.application/Application]
   [service-deploy :- schemas.service/DeployService,
    devspace :- s/Str
    config :- protocols.config/IConfig
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s-client/IKubernetesClient
    config-server :- protocols.config-server-client/IConfigServerClient]
-  (-> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace config)
-          (diplomat.config-server/get-service-application devspace service-deploy config config-server))
-      (logic.application/with-syncable-config (protocols.config/get! config :domain))
-      (controllers.application/create-application! etcd config k8s-client)))
+  (->> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace config)
+           (diplomat.config-server/get-service-application devspace service-deploy config config-server))
+       (mapv #(create-one-application % config etcd k8s-client))))
 
 (s/defn ^:private try-delete :- s/Str
   [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s-client/KubernetesClient s/Str s/Str]])

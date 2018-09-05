@@ -19,5 +19,6 @@
 (s/defschema ApplicationUrls {s/Keyword s/Str})
 (s/defschema Application {:name     s/Str
                           :devspace s/Str
+                          :syncable s/Bool
                           :links    ApplicationUrls})
 
