@@ -6,6 +6,7 @@
             [clj-service.components.webapp :as components.webapp]
             [soil.components.kubernetes-client :as components.kubernetes-client]
             [soil.components.etcd :as components.etcd]
+            [soil.components.etcd-mock :as components.etcd-mock]
             [soil.components.config-server-client :as components.config-server-client]))
 
 (defn base [env]
@@ -19,7 +20,8 @@
 (defn test-system [env]
   (merge
     (base env)
-    {:k8s-api-server {}}))
+    {:k8s-api-server {}
+     :etcd (component/using (components.etcd-mock/new-etcd) [:config])}))
 
 (defn system-map
   [env]

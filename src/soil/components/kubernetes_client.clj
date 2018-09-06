@@ -11,7 +11,7 @@
             [clj-service.exception :as exception]
             [clj-service.protocols.config :as protocols.config]))
 
-(def KubernetesContext {:server s/Str})
+(def KubernetesContext {s/Keyword s/Any})
 (def ctx (k8s/make-context "http://localhost:9000"))
 
 (s/defn get-config-map-impl

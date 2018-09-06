@@ -70,7 +70,7 @@
   (stop [this]
     (.close (:kv-client this))
     (.close (:etcd-client this))
-    (dissoc :etcd-client :kv-client))
+    (dissoc this :etcd-client :kv-client))
 
   protocols.etcd/Etcd
   (put! [this key value]
