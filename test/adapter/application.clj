@@ -2,7 +2,6 @@
   (:require [midje.sweet :refer :all]
             [soil.adapters.application :as adapters.application]
             [schema.core :as s]
-            [clj-service.test-helpers :as th]
             [soil.models.application :as models.application]))
 (s/set-fn-validation! true)
 

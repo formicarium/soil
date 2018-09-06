@@ -2,10 +2,6 @@
   (:require [midje.sweet :refer :all]
             [soil.controllers.devspaces :as controllers.devspaces]
             [soil.protocols.kubernetes-client :as protocols.k8s]
-            [soil.logic.devspace :as logic.devspaces]
-            [clj-service.test-helpers :as th]
-            [clj-service.protocols.config :as protocols.config]
-            [soil.diplomat.kubernetes :as diplomat.kubernetes]
             [schema.core :as s]
             [soil.protocols.etcd :as protocols.etcd]
             [soil.controllers.devspaces :as controllers.devspace]))
