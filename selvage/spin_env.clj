@@ -25,24 +25,42 @@
       (assoc :system (component/start-system (soil/system-map :test)))
       expose-service))
 
+(defn end!
+  [world]
+  (-> world
+      :system
+      component/stop-system)
+  (dissoc world :system))
 
 (defn json->str [coll] (cheshire/generate-string coll))
 
 (defn str->json [str] (cheshire/parse-string str true))
 
+(defn fake-deployment-create-request
+  [body]
+  {:url    (str kubernetes-proxy-url "/apis/apps/v1/namespaces/carlos/deployments")
+   :method :post} {:status 200
+                   :body   (json->str body)})
+
+(defn fake-service-create-request
+  [body]
+  {:url    (str kubernetes-proxy-url "/api/v1/namespaces/carlos/services")
+   :method :post} {:status 200
+                   :body   (json->str body)})
 
 (defn create-env-req! [service] (response-for service
-                                  :post "/api/devspaces"
-                                  :headers {"Content-Type" "application/json"}
-                                  :body (json->str {:name "carlos"})))
+                                              :post "/api/devspaces"
+                                              :headers {"Content-Type" "application/json"}
+                                              :body (json->str {:name "carlos"})))
 
 (defn create-env!
   [world]
   (assoc world :env-created (with-fake-http [{:url    (str kubernetes-proxy-url "/api/v1/namespaces")
                                               :method :post} {:body (json->str {:apiVersion "v1"
                                                                                 :kind       "Namespace"
-                                                                                :metadata   {:name "carlos"}})}]
-                              (create-env-req! (:service-fn world)))))
+                                                                                :metadata   {:name "carlos"
+                                                                                             :kind "fmc-devspace"}})}]
+                                            (create-env-req! (:service-fn world)))))
 
 (def deployment-example {:apiVersion "apps/v1"
                          :kind       "Deployment"
@@ -67,9 +85,9 @@
 
 (defn create-service-req! [service]
   (response-for service :post "/api/services"
-    :headers {"Content-Type"         "application/json"
-              "Formicarium-Devspace" "carlos"}
-    :body (json->str service-args)))
+                :headers {"Content-Type"         "application/json"
+                          "Formicarium-Devspace" "carlos"}
+                :body (json->str service-args)))
 
 (defn create-service!
   [world]
@@ -84,23 +102,25 @@
                                                     :method :post} {:body (json->str {:apiVersion "v1"
                                                                                       :kind       "Ingress"
                                                                                       :metadata   {:name "carlos"}})}
-                                                   {:url    (str configserver-url "/ondeployservice")
+                                                   {:url    (str configserver-url "/service/deploy")
                                                     :method :post
                                                     :body   (json->str service-args)} {:status 200
                                                                                        :body   (json->str service-configuration)}]
-                                    (create-service-req! (:service-fn world)))))
+                                                  (create-service-req! (:service-fn world)))))
 
-#_(flow "spin up a new devspace"
-    init!
-    #_(fn [world] (let [service (:service-fn world)]
-                  (assoc world :service-health (response-for service :get "/api/health"))))
-    #_(fact "health must answer 200"
-      (:service-health *world*) => (contains {:status 200
-                                              :body   (json->str {:healthy true})}))
-    #_create-env!
-    #_(fact "devspace 'carlos' must have been created"
-      (:env-created *world*) => (contains {:status 200
-                                           :body   (json->str {:name "carlos"})}))
-    #_create-service!
-    #_(fact "service 'nginx' must be deployed"
-      (:services-deployed *world*) => (contains {:status 200})))
+(flow "spin up a new devspace"
+      init!
+      (fn [world] (let [service (:service-fn world)]
+                    (assoc world :service-health (response-for service :get "/api/health"))))
+
+      (fact "health must answer 200"
+            (:service-health *world*) => (contains {:status 200
+                                                    :body   (json->str {:healthy true})}))
+      #_create-env!
+      #_(fact "devspace 'carlos' must have been created"
+              (:env-created *world*) => (contains {:status 200
+                                                   :body   (json->str {:name "carlos"})}))
+      #_create-service!
+      #_(fact "service 'nginx' must be deployed"
+              (:services-deployed *world*) => (contains {:status 200}))
+      end!)

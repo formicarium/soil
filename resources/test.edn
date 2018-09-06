@@ -1,5 +1,5 @@
 #merge [#include "base.edn"
-        {:env                "test"
+        {:env                "dev"
          :domain             "formicarium.host"
          :config-server      {:url "https://configserver.com"}
          :kubernetes         {:url                "http://localhost:9000"

@@ -33,7 +33,7 @@
 
 (s/defn hive-application :- models.application/Application
   [devspace :- s/Str
-   config :- protocols.config/Config]
+   config :- protocols.config/IConfig]
   (load-application-template "hive" {:devspace devspace} config))
 
 (s/defn tanajura-application :- models.application/Application

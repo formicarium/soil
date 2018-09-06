@@ -65,6 +65,26 @@
   (->> (mapv :container/syncable? containers)
        (some true?)))
 
+(s/defn get-entity-patches :- [models.application/Patch]
+  [{:application/keys [patches]} :- models.application/Application
+   entity :- (s/enum "Deployment" "Service" "Ingress")]
+  (->> patches
+       (filter #(= (:kind %) entity))
+       (mapv :patch)))
+
+(s/defn get-deployment-patches :- [models.application/Patch]
+  [application :- models.application/Application]
+  (get-entity-patches application "Deployment"))
+
+(s/defn get-service-patches :- [models.application/Patch]
+  [application :- models.application/Application]
+  (get-entity-patches application "Service"))
+
+(s/defn get-ingress-patches :- [models.application/Patch]
+  [application :- models.application/Application]
+  (get-entity-patches application "Ingress"))
+
+
 (s/defn with-syncable-config :- models.application/Application
   [application :- models.application/Application
    domain :- s/Str]
