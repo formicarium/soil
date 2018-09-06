@@ -36,10 +36,10 @@
                 adapters.devspace/internal->wire)})
 
 (defn create-devspace!
-  [{{:keys [config k8s-client etcd]} :components
+  [{{:keys [config config-server k8s-client etcd]} :components
     new-devspace                     :data}]
   {:status 201
-   :body   (-> (controllers.devspace/create-devspace! new-devspace config etcd k8s-client)
+   :body   (-> (controllers.devspace/create-devspace! new-devspace config config-server etcd k8s-client)
                adapters.devspace/internal->wire)})
 
 (defn delete-devspace!
