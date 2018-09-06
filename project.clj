@@ -13,7 +13,7 @@
                  [http-kit "2.3.0"]
                  [me.raynes/conch "0.8.0"]
                  [cheshire "5.8.0"]
-                 [formicarium/clj-json-patch "0.1.7"]]
+                 [formicarium/clj-json-patch "0.1.8"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :test-paths ["test/" "selvage/"]
