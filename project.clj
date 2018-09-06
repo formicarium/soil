@@ -23,6 +23,7 @@
                        :plugins      [[lein-midje "3.2.1"]]
                        :dependencies [[midje "1.9.1"]
                                       [clj-http-fake "1.0.3"]
+                                      [cheshire "5.8.0"]
                                       [http-kit.fake "0.2.1"]
                                       [nubank/selvage "0.0.1"]]}
              :uberjar {:aot [soil.server]}}
