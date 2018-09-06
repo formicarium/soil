@@ -26,17 +26,23 @@
                                            :port      35000
                                            :type      :interface.type/tcp
                                            :container "kratos"
-                                           :host      "kratos-repl.carlos-rodrigues.formicarium.host"}]})
+                                           :host      "kratos-repl.carlos-rodrigues.formicarium.host"}]
+                 :patches     [{:kind "Deployment"
+                                :patch {:op "add"
+                                        :path "/spec/template/metadata/annotations/iam.amazonaws.com~1role"
+                                        :value "role-arn"}}]})
 
 (def kratos-deployment
   {:apiVersion "apps/v1"
    :kind       "Deployment"
    :metadata   {:name      "kratos"
                 :labels    {:app "kratos"}
+                :annotations {}
                 :namespace "carlos-rodrigues"}
    :spec       {:selector {:matchLabels {:app "kratos"}}
                 :replicas 1
                 :template {:metadata {:labels    {:app "kratos"}
+                                      :annotations {:iam.amazonaws.com/role "role-arn"}
                                       :namespace "carlos-rodrigues"}
                            :spec     {:hostname   "kratos"
                                       :containers [{:name  "kratos"
@@ -64,6 +70,7 @@
    :kind       "Service"
    :metadata   {:name      "kratos"
                 :labels    {:app "kratos"}
+                :annotations {}
                 :namespace "carlos-rodrigues"}
    :spec       {:ports    [{:protocol   "TCP"
                             :name       "default"
@@ -84,7 +91,7 @@
   {:apiVersion "extensions/v1beta1"
    :kind       "Ingress"
    :metadata   {:name        "kratos"
-                :annotations {"kubernetes.io/ingress.class" "nginx"}
+                :annotations {:kubernetes.io/ingress.class "nginx"}
                 :labels      {:app "kratos"}
                 :namespace   "carlos-rodrigues"}
    :spec       {:rules [{:host "kratos.carlos-rodrigues.formicarium.host"

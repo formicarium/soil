@@ -1,6 +1,15 @@
 (ns soil.models.application
   (:require [schema.core :as s]))
 
+
+(s/defschema Patch {:op     (s/enum "add" "remove" "replace" "move" "copy" "test")
+                    :path   s/Str
+                    (s/optional-key :from) s/Str
+                    :value  s/Any})
+
+(s/defschema EntityPatch {:kind (s/enum "Deployment" "Service" "Ingress")
+                          :patch Patch})
+
 (s/defschema Container {:container/name                       s/Str
                         :container/image                      s/Str
                         (s/optional-key :container/syncable?) s/Bool
@@ -30,4 +39,5 @@
                                        :devspace   s/Str
                                        :containers [Container]
                                        :interfaces [Interface]
-                                       :status     ApplicationStatus})
+                                       :status     ApplicationStatus
+                                       :patches    [EntityPatch]})

@@ -26,7 +26,6 @@
    name :- s/Str
    namespace :- s/Str
    config-map]
-  (prn config-map)
   (<!! (k8s/patch-namespaced-config-map ctx
                                         config-map
                                         {:name      name
@@ -56,7 +55,6 @@
 (s/defn create-deployment-impl!
   [ctx :- KubernetesContext
    deployment :- schemas.kubernetes.deployment/Deployment]
-  (prn deployment)
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
                                               {:namespace (get-in deployment [:metadata :namespace])})))
 
