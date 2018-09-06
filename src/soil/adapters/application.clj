@@ -80,7 +80,7 @@
      :spec       {:ports    (->> (:application/containers application)
                                  (mapv #(application+container->service-ports application %))
                                  (flatten))
-                  :type "NodePort"
+                  :type     "NodePort"
                   :selector {:app app-name}}}))
 
 (s/defn application+interface->ingress-rule :- (s/pred map?)
@@ -128,6 +128,7 @@
   [application :- models.application/Application]
   {:name     (:application/name application)
    :devspace (:application/devspace application)
+   :syncable (logic.application/syncable? application)
    :links    (application->urls application)})
 
 (s/defn application-key :- s/Str

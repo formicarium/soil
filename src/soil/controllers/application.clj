@@ -9,8 +9,6 @@
             [clj-service.protocols.config :as protocols.config]
             [soil.logic.application :as logic.application]))
 
-
-
 (s/defn get-tcp-hosts :- {s/Str s/Str}
   [application :- models.application/Application
    k8s-client :- protocols.k8s-client/IKubernetesClient]

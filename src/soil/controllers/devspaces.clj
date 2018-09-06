@@ -16,7 +16,9 @@
             [soil.protocols.etcd :as protocols.etcd]
             [soil.db.etcd.application :as etcd.application]
             [soil.schemas.devspace :as schemas.devspace]
-            [clj-service.exception :as exception]))
+            [clj-service.exception :as exception]
+            [soil.diplomat.config-server :as diplomat.config-server]
+            [soil.adapters.devspace :as adapters.devspace]))
 
 (s/defn ^:private load-application-template :- models.application/Application
   [name :- s/Str
@@ -40,15 +42,14 @@
   (load-application-template "tanajura" {:devspace devspace} config))
 
 (s/defn create-setup! :- [models.application/Application]
-  [{devspace-name :name
-    setup-apps    :setup} :- schemas.devspace/CreateDevspace
+  [create-devspace :- schemas.devspace/CreateDevspace
    config :- protocols.config/IConfig
+   config-server :- soil.protocols.config-server-client/IConfigServerClient
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (map #(-> (assoc % :devspace devspace-name)
-            (adapters.application/definition->application config)
-            (controllers.application/create-application! etcd config k8s-client))
-       setup-apps))
+  (->> (or (adapters.devspace/create-devspace->applications? create-devspace config)
+           (diplomat.config-server/get-devspace-applications create-devspace config config-server))
+       (mapv #(controllers.application/create-application! % etcd config k8s-client))))
 
 (s/defn render-devspace :- models.devspace/Devspace
   [devspace :- models.devspace/Devspace
@@ -61,6 +62,7 @@
 (s/defn create-devspace! :- models.devspace/Devspace
   [{devspace-name :name :as new-devspace} :- schemas.devspace/CreateDevspace
    config :- protocols.config/IConfig
+   config-server :- soil.protocols.config-server-client/IConfigServerClient
    etcd :- protocols.etcd/IEtcd
    k8s-client :- protocols.k8s/IKubernetesClient]
   (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
@@ -70,7 +72,7 @@
                                (controllers.application/create-application! etcd config k8s-client))
              :tanajura     (-> (tanajura-application devspace-name config)
                                (controllers.application/create-application! etcd config k8s-client))
-             :applications (create-setup! new-devspace config etcd k8s-client)})
+             :applications (create-setup! new-devspace config config-server etcd k8s-client)})
 
 
 (s/defn get-devspaces :- [models.devspace/Devspace]
