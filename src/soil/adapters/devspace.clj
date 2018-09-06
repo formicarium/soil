@@ -7,7 +7,8 @@
             [soil.adapters.application :as adapters.application]
             [clj-service.misc :as misc]
             [soil.models.application :as models.application]
-            [soil.logic.application :as logic.application]))
+            [soil.logic.application :as logic.application]
+            [clj-service.protocols.config :as protocols.config]))
 
 (s/defn devspace-name->create-namespace :- schemas.k8s.namespace/CreateNamespace
   [devspace-name :- s/Str]
@@ -45,3 +46,14 @@
     :devspace/hive (logic.application/get-hive applications)
     :devspace/tanajura (logic.application/get-tanajura applications)
     :devspace/applications (logic.application/but-hive-tanajura applications)))
+
+(s/defn create-devspace->args-map :- (s/pred map?)
+  [create-devspace :- schemas.devspace/CreateDevspace]
+  (merge {:name (:name create-devspace)} (:args create-devspace)))
+
+(s/defn create-devspace->applications? :- (s/maybe [models.application/Application])
+  [create-devspace :- schemas.devspace/CreateDevspace
+   config :- protocols.config/IConfig]
+  (some->> create-devspace
+           :setup
+           (mapv #(adapters.application/definition->application % config))))

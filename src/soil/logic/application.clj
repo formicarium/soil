@@ -60,7 +60,7 @@
       (update :application/containers #(mapv (partial make-container-syncable application) %))
       (update :application/interfaces #(cons (get-stinger-interface application domain) %))))
 
-(s/defn is-application-syncable?
+(s/defn syncable?
   [{:application/keys [containers]} :- models.application/Application]
   (->> (mapv :container/syncable? containers)
        (some true?)))
@@ -88,7 +88,7 @@
 (s/defn with-syncable-config :- models.application/Application
   [application :- models.application/Application
    domain :- s/Str]
-  (if (is-application-syncable? application)
+  (if (syncable? application)
     (make-syncable application domain)
     application))
 

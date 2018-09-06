@@ -65,15 +65,15 @@
     (patch
       {:apiVersion "apps/v1"
        :kind       "Deployment"
-       :metadata   {:name      app-name
-                    :labels    {:app app-name}
+       :metadata   {:name        app-name
+                    :labels      {:app app-name}
                     :annotations {}
-                    :namespace devspace}
+                    :namespace   devspace}
        :spec       {:selector {:matchLabels {:app app-name}}
                     :replicas 1
-                    :template {:metadata {:labels    {:app app-name}
+                    :template {:metadata {:labels      {:app app-name}
                                           :annotations {}
-                                          :namespace devspace}
+                                          :namespace   devspace}
                                :spec     {:hostname         app-name
                                           :containers       (application->containers application)
                                           :imagePullSecrets (mapv #(do {:name %}) (keep identity image-pull-secrets))}}}}
@@ -95,10 +95,10 @@
     (patch
       {:apiVersion "v1"
        :kind       "Service"
-       :metadata   {:name      app-name
-                    :labels    {:app app-name}
+       :metadata   {:name        app-name
+                    :labels      {:app app-name}
                     :annotations {}
-                    :namespace (:application/devspace application)}
+                    :namespace   (:application/devspace application)}
        :spec       {:ports    (->> (:application/containers application)
                                    (mapv #(application+container->service-ports application %))
                                    (flatten))
@@ -153,6 +153,7 @@
   [application :- models.application/Application]
   {:name     (:application/name application)
    :devspace (:application/devspace application)
+   :syncable (logic.application/syncable? application)
    :links    (application->urls application)})
 
 (s/defn application-key :- s/Str
