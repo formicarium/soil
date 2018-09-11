@@ -1,13 +1,17 @@
 (ns soil.adapters.application
   (:require [schema.core :as s]
             [soil.schemas.application :as schemas.application]
+            [soil.schemas.kubernetes.deployment :as schemas.k8s.deployment]
+            [soil.schemas.kubernetes.service :as schemas.k8s.service]
+            [soil.schemas.kubernetes.ingress :as schemas.k8s.ingress]
             [soil.models.application :as models.application]
             [clj-service.protocols.config :as protocols.config]
             [clj-service.exception :refer [server-error!]]
             [soil.logic.application :as logic.application]
             [soil.logic.interface :as logic.interface]
             [clj-json-patch.core :as json-patch]
-            [clj-service.misc :as misc]))
+            [clj-service.misc :as misc]
+            [clj-service.adapt :as adapt]))
 
 (defn- deep-map-keys
   [f coll]
@@ -16,6 +20,11 @@
     (vector? coll) (mapv #(deep-map-keys f %) coll)
     (list? coll) (map #(deep-map-keys f %) coll)
     :else coll))
+
+;(s/defn depth-map-keys [func m]
+;  "Apply `func` to all keys from `m`"
+;  (let [f (fn [[k v]] (if (keyword? k) [(func k) v] [k v]))]
+;    (walk/postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m)))
 
 (defn- patch [obj patches]
   (->> patches
@@ -35,10 +44,10 @@
                                                      :syncable? (:syncable? %)}) (:containers app-definition))
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
-                                              {:devspace (:devspace app-definition)
-                                               :service  (:name app-definition)
-                                               :type     (keyword "interface.type" (name (:type %)))
-                                               :domain   domain})) (:interfaces app-definition))
+                                         {:devspace (:devspace app-definition)
+                                          :service  (:name app-definition)
+                                          :type     (keyword "interface.type" (name (:type %)))
+                                          :domain   domain})) (:interfaces app-definition))
                   :status     :application.status/template
                   :patches    (:patches app-definition)}))
 
@@ -66,12 +75,12 @@
       {:apiVersion "apps/v1"
        :kind       "Deployment"
        :metadata   {:name        app-name
-                    :labels      {:app app-name}
+                    :labels      {:formicarium.io/application app-name}
                     :annotations {}
                     :namespace   devspace}
-       :spec       {:selector {:matchLabels {:app app-name}}
+       :spec       {:selector {:matchLabels {:formicarium.io/application app-name}}
                     :replicas 1
-                    :template {:metadata {:labels      {:app app-name}
+                    :template {:metadata {:labels      {:formicarium.io/application app-name}
                                           :annotations {}
                                           :namespace   devspace}
                                :spec     {:hostname         app-name
@@ -96,14 +105,14 @@
       {:apiVersion "v1"
        :kind       "Service"
        :metadata   {:name        app-name
-                    :labels      {:app app-name}
+                    :labels      {:formicarium.io/application app-name}
                     :annotations {}
                     :namespace   (:application/devspace application)}
        :spec       {:ports    (->> (:application/containers application)
                                    (mapv #(application+container->service-ports application %))
                                    (flatten))
                     :type     "NodePort"
-                    :selector {:app app-name}}}
+                    :selector {:formicarium.io/application app-name}}}
       (logic.application/get-service-patches application))))
 
 (s/defn application+interface->ingress-rule :- (s/pred map?)
@@ -122,7 +131,7 @@
        :kind       "Ingress"
        :metadata   {:name        app-name
                     :annotations {:kubernetes.io/ingress.class "nginx"}
-                    :labels      {:app app-name}
+                    :labels      {:formicarium.io/application app-name}
                     :namespace   (:application/devspace application)}
        :spec       {:rules (->> interfaces
                                 (filter logic.interface/http-like?)
@@ -135,13 +144,13 @@
    {:application/keys [devspace] :as application} :- models.application/Application]
   (let [tcp-interfaces (logic.application/get-tcp-like-interfaces application)]
     (if (>= (count ports)
-            (count tcp-interfaces))
+          (count tcp-interfaces))
       {:data (->> tcp-interfaces
                   (mapv #(str devspace "/" (:application/name application) ":" (:interface/port %)))
                   (zipmap (map (comp keyword str) ports)))}
       (server-error! (ex-info "Not enough available ports"
-                              {:ports          ports
-                               :tcp-interfaces tcp-interfaces})))))
+                       {:ports          ports
+                        :tcp-interfaces tcp-interfaces})))))
 
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
@@ -164,3 +173,61 @@
 (s/defn application->key :- s/Str
   [{:application/keys [devspace name]} :- models.application/Application]
   (application-key devspace name))
+
+;; ==================================================
+
+(s/defn edn-label->clj [k8s-res label] (-> k8s-res :metadata :labels label adapt/from-edn))
+
+(s/defn service->port-type [service interface-name]
+  (get (edn-label->clj service :formicarium.io/port-types) interface-name))
+
+(s/defn ingress->interface-host [ingress interface-name]
+  (->> ingress :spec :rules
+       (filter
+         #(first
+            (->> % :http :paths
+                 (filter (fn [v]
+                           (= (-> v :backend :servicePort)
+                             interface-name)))))) first :host))
+
+(s/defn k8s->interfaces :- [models.application/Interface]
+  [deployment service ingress]
+  (mapcat
+    (fn [container]
+      (map #(do #:interface{:container (:name container)
+                            :name      (:name %)
+                            :type      (service->port-type service (:name %))
+                            :host      (ingress->interface-host ingress (:name %))
+                            :port      (:containerPort %)}) (:ports container)))
+    (-> deployment :spec :template :spec :containers)))
+
+(s/defn k8s-container->envs :- {s/Str s/Str}
+  [container]
+  (->> (:env container)
+       (map #(do [(:name %) (:value %)]))
+       (into {})))
+
+(s/defn k8s->containers :- [models.application/Container]
+  [deployment]
+  (map (fn [container]
+         #:container{:name      (:name container)
+                     :image     (:image container)
+                     :syncable? ((edn-label->clj deployment :formicarium.io/syncable-containers) (:name container))
+                     :env       (k8s-container->envs container)})
+    (-> deployment :spec :template :spec :containers)))
+
+(s/defn k8s->patches :- [models.application/EntityPatch]
+  [deployment service ingress]
+  (concat (edn-label->clj deployment :formicarium.io/patches)
+          (edn-label->clj service :formicarium.io/patches)
+          (edn-label->clj ingress :formicarium.io/patches)))
+
+(s/defn k8s->application :- models.application/Application
+  [deployment :- schemas.k8s.deployment/Deployment
+   service :- schemas.k8s.service/Service
+   ingress :- schemas.k8s.ingress/Ingress]
+  #:application{:name       (-> deployment :metadata :labels :formicarium.io/application)
+                :devspace   (-> deployment :metadata :namespace)
+                :interfaces (vec (k8s->interfaces deployment service ingress))
+                :containers (vec (k8s->containers deployment))
+                :patches    (vec (k8s->patches deployment service ingress))})

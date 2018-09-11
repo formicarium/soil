@@ -26,38 +26,40 @@
                                            :type      :interface.type/tcp
                                            :container "kratos"
                                            :host      "kratos-repl.carlos-rodrigues.formicarium.host"}]
-                 :patches     [{:kind "Deployment"
-                                :patch {:op "add"
-                                        :path "/spec/template/metadata/annotations/iam.amazonaws.com~1role"
-                                        :value "role-arn"}}]})
+                 :patches    [{:kind  "Deployment"
+                               :patch {:op    "add"
+                                       :path  "/spec/template/metadata/annotations/iam.amazonaws.com~1role"
+                                       :value "role-arn"}}]})
 
 (def kratos-deployment
   {:apiVersion "apps/v1"
    :kind       "Deployment"
-   :metadata   {:name      "kratos"
-                :labels    {:app "kratos"}
+   :metadata   {:name        "kratos"
+                :labels      {:app                               "kratos"
+                              :formicarium.io/syncable-container "kratos"
+                              :formicarium.io/patches            "[...json...]"}
                 :annotations {}
-                :namespace "carlos-rodrigues"}
+                :namespace   "carlos-rodrigues"}
    :spec       {:selector {:matchLabels {:app "kratos"}}
                 :replicas 1
-                :template {:metadata {:labels    {:app "kratos"}
+                :template {:metadata {:labels      {:app "kratos"}
                                       :annotations {:iam.amazonaws.com/role "role-arn"}
-                                      :namespace "carlos-rodrigues"}
-                           :spec     {:hostname   "kratos"
-                                      :containers [{:name  "kratos"
-                                                    :image "formicarium/chamber-lein:latest"
-                                                    :ports [{:name          "default"
-                                                             :containerPort 8080}
-                                                            {:name          "repl"
-                                                             :containerPort 35000}]
-                                                    :env   [{:name  "STARTUP_CLONE"
-                                                             :value "true"}
-                                                            {:name  "STINGER_PORT"
-                                                             :value "24000"}
-                                                            {:name  "APP_PATH"
-                                                             :value "/app"}
-                                                            {:name  "STINGER_SCRIPTS"
-                                                             :value "/scripts"}]}]
+                                      :namespace   "carlos-rodrigues"}
+                           :spec     {:hostname         "kratos"
+                                      :containers       [{:name  "kratos"
+                                                          :image "formicarium/chamber-lein:latest"
+                                                          :ports [{:name          "default"
+                                                                   :containerPort 8080}
+                                                                  {:name          "repl"
+                                                                   :containerPort 35000}]
+                                                          :env   [{:name  "STARTUP_CLONE"
+                                                                   :value "true"}
+                                                                  {:name  "STINGER_PORT"
+                                                                   :value "24000"}
+                                                                  {:name  "APP_PATH"
+                                                                   :value "/app"}
+                                                                  {:name  "STINGER_SCRIPTS"
+                                                                   :value "/scripts"}]}]
                                       :imagePullSecrets [{:name "docker-registry-secret"}]}}}})
 
 
@@ -67,10 +69,12 @@
 (def kratos-service
   {:apiVersion "v1"
    :kind       "Service"
-   :metadata   {:name      "kratos"
-                :labels    {:app "kratos"}
+   :metadata   {:name        "kratos"
+                :labels      {:app                       "kratos"
+                              :formicarium.io/patches    "...json..."
+                              :formicarium.io/port-types "...json..."}
                 :annotations {}
-                :namespace "carlos-rodrigues"}
+                :namespace   "carlos-rodrigues"}
    :spec       {:ports    [{:protocol   "TCP"
                             :name       "default"
                             :port       80
@@ -79,7 +83,7 @@
                             :name       "repl"
                             :port       35000
                             :targetPort "repl"}]
-                :type "NodePort"
+                :type     "NodePort"
                 :selector {:app "kratos"}}})
 
 
