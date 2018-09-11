@@ -23,26 +23,6 @@
       (update :tanajura adapters.application/internal->wire)
       (update :applications #(mapv adapters.application/internal->wire %))))
 
-(s/defn devspace-name->application-prefix
-  [devspace-name :- s/Str]
-  (str "applications/" devspace-name))
-
-(s/defn devspace-name->key :- s/Str
-  [devspace-name :- s/Str]
-  (str "devspaces/" devspace-name))
-
-(s/defn devspace-name->persistent :- models.devspace/PersistentDevspace
-  [devspace-name :- s/Str]
-  #:devspace{:name devspace-name})
-
-(s/defn persistent+applications->internal :- models.devspace/Devspace
-  [devspace :- models.devspace/PersistentDevspace
-   applications :- [models.application/Application]]
-  (assoc devspace
-    :devspace/hive (logic.application/get-hive applications)
-    :devspace/tanajura (logic.application/get-tanajura applications)
-    :devspace/applications (logic.application/but-hive-tanajura applications)))
-
 (s/defn create-devspace->args-map :- (s/pred map?)
   [create-devspace :- schemas.devspace/CreateDevspace]
   (merge {:name (:name create-devspace)} (:args create-devspace)))

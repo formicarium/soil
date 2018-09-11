@@ -4,8 +4,6 @@
             [selmer.parser]
             [soil.models.application :as models.application]
             [soil.protocols.kubernetes-client :as protocols.k8s-client]
-            [soil.protocols.etcd :as protocols.etcd]
-            [soil.db.etcd.application :as etcd.application]
             [clj-service.protocols.config :as protocols.config]
             [soil.logic.application :as logic.application]))
 
@@ -27,7 +25,6 @@
 
 (s/defn create-application! :- models.application/Application
   [application :- models.application/Application
-   etcd :- protocols.etcd/IEtcd
    config :- protocols.config/IConfig
    k8s-client :- protocols.k8s-client/IKubernetesClient]
   (diplomat.kubernetes/create-deployment! application k8s-client config)
@@ -36,5 +33,4 @@
     (diplomat.kubernetes/create-ingress! application k8s-client))
   (when (logic.application/has-tcp-like-interfaces application)
     (diplomat.kubernetes/add-tcp-config-map-entries! application config k8s-client))
-  (etcd.application/create-application! application etcd)
   (render-application application k8s-client))

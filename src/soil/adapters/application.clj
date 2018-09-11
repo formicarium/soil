@@ -21,11 +21,6 @@
     (list? coll) (map #(deep-map-keys f %) coll)
     :else coll))
 
-;(s/defn depth-map-keys [func m]
-;  "Apply `func` to all keys from `m`"
-;  (let [f (fn [[k v]] (if (keyword? k) [(func k) v] [k v]))]
-;    (walk/postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m)))
-
 (defn- patch [obj patches]
   (->> patches
        (mapv #(misc/map-keys name %))
@@ -70,12 +65,17 @@
 (s/defn application->deployment :- (s/pred map?)
   [{:application/keys [devspace] :as application} :- models.application/Application
    image-pull-secrets :- [s/Str]]
-  (let [app-name (:application/name application)]
+  (let [app-name            (:application/name application)
+        syncable-containers (set (map :container/name (filter #(true? (:container/syncable? %))
+                                                        (:application/containers application))))
+        patches             (logic.application/get-deployment-patches application)]
     (patch
       {:apiVersion "apps/v1"
        :kind       "Deployment"
        :metadata   {:name        app-name
-                    :labels      {:formicarium.io/application app-name}
+                    :labels      {:formicarium.io/application         app-name
+                                  :formicarium.io/patches             (adapt/to-edn patches)
+                                  :formicarium.io/syncable-containers (adapt/to-edn syncable-containers)}
                     :annotations {}
                     :namespace   devspace}
        :spec       {:selector {:matchLabels {:formicarium.io/application app-name}}
@@ -86,7 +86,7 @@
                                :spec     {:hostname         app-name
                                           :containers       (application->containers application)
                                           :imagePullSecrets (mapv #(do {:name %}) (keep identity image-pull-secrets))}}}}
-      (logic.application/get-deployment-patches application))))
+      patches)))
 
 (s/defn application+container->service-ports :- [(s/pred map?)]
   [application :- models.application/Application
@@ -100,12 +100,16 @@
 
 (s/defn application->service :- (s/pred map?)
   [application :- models.application/Application]
-  (let [app-name (:application/name application)]
+  (let [app-name   (:application/name application)
+        port-types (into {} (map #(do [(:interface/name %) (:interface/type %)]) (:application/interfaces application)))
+        patches    (logic.application/get-service-patches application)]
     (patch
       {:apiVersion "v1"
        :kind       "Service"
        :metadata   {:name        app-name
-                    :labels      {:formicarium.io/application app-name}
+                    :labels      {:formicarium.io/application app-name
+                                  :formicarium.io/port-types  (adapt/to-edn port-types)
+                                  :formicarium.io/patches     (adapt/to-edn patches)}
                     :annotations {}
                     :namespace   (:application/devspace application)}
        :spec       {:ports    (->> (:application/containers application)
@@ -113,7 +117,7 @@
                                    (flatten))
                     :type     "NodePort"
                     :selector {:formicarium.io/application app-name}}}
-      (logic.application/get-service-patches application))))
+      patches)))
 
 (s/defn application+interface->ingress-rule :- (s/pred map?)
   [application :- models.application/Application
@@ -164,15 +168,6 @@
    :devspace (:application/devspace application)
    :syncable (logic.application/syncable? application)
    :links    (application->urls application)})
-
-(s/defn application-key :- s/Str
-  [devspace :- s/Str
-   app-name :- s/Str]
-  (clojure.string/join "/" ["applications" devspace app-name]))
-
-(s/defn application->key :- s/Str
-  [{:application/keys [devspace name]} :- models.application/Application]
-  (application-key devspace name))
 
 ;; ==================================================
 

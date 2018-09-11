@@ -5,7 +5,6 @@
             [schema.core :as s]
             [soil.adapters.application :as adapters.application]
             [soil.models.application :as models.application]
-            [soil.logic.application :as logic.application]
             [clj-service.protocols.config :as protocols.config]
             [soil.logic.interface :as logic.interface]))
 
@@ -34,55 +33,6 @@
    k8s-client :- protocols.k8s/IKubernetesClient]
   (->> (adapters.application/application->ingress application)
        (protocols.k8s/create-ingress! k8s-client)))
-
-(s/defn get-tcp-available-ports :- [s/Int]
-  [num :- [s/Int]
-   {:keys [name namespace max-port min-port]} :- (s/pred map?)
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (take num
-        (->> (protocols.k8s/get-config-map k8s-client name namespace)
-             :data
-             keys
-             (mapv clojure.core/name)
-             set
-             (difference (set (map str (range min-port max-port)))))))
-
-(s/defn gen-tcp-ports-for-application :- [s/Int]
-  [application :- models.application/Application
-   ingress-config :- (s/pred map?)
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (get-tcp-available-ports (count (logic.application/get-tcp-like-interfaces application))
-                           ingress-config
-                           k8s-client))
-
-(s/defn get-tcp-ports-mapped :- [s/Int]
-  [{:application/keys [devspace] :as application} :- models.application/Application
-   {:keys [name namespace]} :- (s/pred map?)
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (->> (protocols.k8s/get-config-map k8s-client name namespace)
-       :data
-       (filter (fn [[_ v]] (clojure.string/starts-with? v (str devspace "/" (:application/name application)))))
-       keys
-       (mapv (comp read-string clojure.core/name))))
-
-(s/defn add-tcp-config-map-entries!
-  [application :- models.application/Application
-   config :- protocols.config/IConfig
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (let [{:keys [name namespace] :as ingress-config} (protocols.config/get-in! config [:kubernetes :ingress-config-map])]
-    (->> (gen-tcp-ports-for-application application ingress-config k8s-client)
-         (logic.application/get-config-map application)
-         (protocols.k8s/patch-config-map! k8s-client name namespace))))
-
-(s/defn delete-tcp-config-map-entries!
-  [application :- models.application/Application
-   config :- protocols.config/IConfig
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (let [{:keys [name namespace] :as ingress-config} (protocols.config/get-in! config [:kubernetes :ingress-config-map])]
-    (->> (get-tcp-ports-mapped application ingress-config k8s-client)
-         (logic.application/get-erase-config-map application)
-         (protocols.k8s/patch-config-map! k8s-client name namespace))))
-
 
 (s/defn get-pod-by-app :- (s/maybe (s/pred map?))
   [{:application/keys [devspace name]} :- models.application/Application
