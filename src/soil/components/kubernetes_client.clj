@@ -26,10 +26,8 @@
    name :- s/Str
    namespace :- s/Str
    config-map]
-  (<!! (k8s/patch-namespaced-config-map ctx
-                                        config-map
-                                        {:name      name
-                                         :namespace namespace})))
+  (<!! (k8s/patch-namespaced-config-map ctx config-map {:name      name
+                                                        :namespace namespace})))
 
 (s/defn create-namespace-impl!
   [ctx :- KubernetesContext
@@ -56,7 +54,7 @@
   [ctx :- KubernetesContext
    deployment :- schemas.kubernetes.deployment/Deployment]
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
-                                              {:namespace (get-in deployment [:metadata :namespace])})))
+         {:namespace (get-in deployment [:metadata :namespace])})))
 
 (s/defn create-ingress-impl! [ctx ingress]
   (<!! (extensions-v1beta1/create-namespaced-ingress ctx ingress {:namespace (get-in ingress [:metadata :namespace])})))
@@ -168,7 +166,7 @@
     (let [kubernetes-url (protocols.config/get-in! config [:kubernetes :url])
           token-filepath (protocols.config/get-in! config [:kubernetes :token-filepath])
 
-          ctx (k8s/make-context kubernetes-url {:token (slurp token-filepath)})]
+          ctx            (k8s/make-context kubernetes-url {:token (slurp token-filepath)})]
       (assoc this
         :ctx ctx
         :health (check-api-health ctx))))

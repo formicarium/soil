@@ -10,7 +10,7 @@
 (s/defn get-tcp-hosts :- {s/Str s/Str}
   [application :- models.application/Application
    k8s-client :- protocols.k8s-client/IKubernetesClient]
-  (let [node-ip (diplomat.kubernetes/get-pod-node-ip application k8s-client)
+  (let [node-ip    (diplomat.kubernetes/get-pod-node-ip application k8s-client)
         node-ports (diplomat.kubernetes/get-applications-node-ports application k8s-client)]
     (->> (logic.application/get-tcp-like-interfaces application)
          (mapv (fn [{:interface/keys [name]}]
@@ -31,6 +31,4 @@
   (diplomat.kubernetes/create-service! application k8s-client)
   (when (logic.application/has-http-like-interfaces application)
     (diplomat.kubernetes/create-ingress! application k8s-client))
-  (when (logic.application/has-tcp-like-interfaces application)
-    (diplomat.kubernetes/add-tcp-config-map-entries! application config k8s-client))
   (render-application application k8s-client))

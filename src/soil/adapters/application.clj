@@ -114,7 +114,7 @@
                     :namespace   (:application/devspace application)}
        :spec       {:ports    (->> (:application/containers application)
                                    (mapv #(application+container->service-ports application %))
-                                   (flatten))
+                                   flatten)
                     :type     "NodePort"
                     :selector {:formicarium.io/application app-name}}}
       patches)))
@@ -142,19 +142,6 @@
                                 (filter logic.interface/exposed?)
                                 (mapv (partial application+interface->ingress-rule application)))}}
       (logic.application/get-ingress-patches application))))
-
-(s/defn application->config-map :- (s/pred map?)
-  [ports :- [s/Int]
-   {:application/keys [devspace] :as application} :- models.application/Application]
-  (let [tcp-interfaces (logic.application/get-tcp-like-interfaces application)]
-    (if (>= (count ports)
-          (count tcp-interfaces))
-      {:data (->> tcp-interfaces
-                  (mapv #(str devspace "/" (:application/name application) ":" (:interface/port %)))
-                  (zipmap (map (comp keyword str) ports)))}
-      (server-error! (ex-info "Not enough available ports"
-                       {:ports          ports
-                        :tcp-interfaces tcp-interfaces})))))
 
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
@@ -207,7 +194,9 @@
   (map (fn [container]
          #:container{:name      (:name container)
                      :image     (:image container)
-                     :syncable? ((edn-label->clj deployment :formicarium.io/syncable-containers) (:name container))
+                     :syncable? (contains?
+                                  (edn-label->clj deployment :formicarium.io/syncable-containers)
+                                  (:name container))
                      :env       (k8s-container->envs container)})
     (-> deployment :spec :template :spec :containers)))
 

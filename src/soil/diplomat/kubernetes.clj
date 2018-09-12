@@ -62,3 +62,7 @@
        :ports
        (mapv (fn [{:keys [name nodePort]}] {name nodePort}))
        (apply merge)))
+
+(s/defn get-devspaces-names :- [s/Str]
+  [k8s-client :- protocols.k8s/IKubernetesClient]
+  )

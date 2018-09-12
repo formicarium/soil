@@ -105,11 +105,3 @@
 (fact "externalize application to ingress"
   (adapters.application/application->ingress kratos-application) => kratos-ingress)
 
-(def kratos-config-map
-  {:data {:4053 "carlos-rodrigues/kratos:35000"}})
-
-(fact "externalize application to config-map"
-  (adapters.application/application->config-map [4053] kratos-application) => kratos-config-map
-  (adapters.application/application->config-map [] kratos-application) => throws
-  (adapters.application/application->config-map [4053 4054 5042] kratos-application) => kratos-config-map)
-
