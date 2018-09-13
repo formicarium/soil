@@ -13,7 +13,7 @@
   {:config         (components.config/new-config (str (name env) ".edn"))
    :config-server  (component/using (components.config-server-client/new-config-server) [:config])
    :k8s-client     (component/using (components.kubernetes-client/new-k8s-client) [:config])
-   :etcd           (component/using (components.etcd/new-etcd) [:config])
+   :etcd           (component/using (components.etcd-mock/new-etcd) [:config])
    :webapp         (component/using (components.webapp/new-webapp) [:config :config-server :k8s-client :etcd])
    :pedestal       (component/using (components.pedestal/new-pedestal #'routes/routes) [:config :webapp])})
 

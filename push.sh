@@ -3,7 +3,7 @@
 set -eou pipefail
 
 version=$(cat ./resources/base.edn | grep  ':version .*"[0-9\.]*"' | grep -oEi '[0-9]+\.[0-9]+\.[0-9]+')
-
+version=${version}-mocked
 docker build -t soil:${version} .
 docker tag soil:${version} formicarium/soil:${version}
 docker tag soil:${version} formicarium/soil:latest
