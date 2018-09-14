@@ -9,10 +9,13 @@
             [kubernetes.api.extensions-v1beta1 :as extensions-v1beta1]
             [kubernetes.api.v1 :as k8s]
             [clj-service.exception :as exception]
-            [clj-service.protocols.config :as protocols.config]))
+            [clj-service.protocols.config :as protocols.config]
+            [clojure.string :as str]))
 
 (def KubernetesContext {s/Keyword s/Any})
 (def ctx (k8s/make-context "http://localhost:9000"))
+
+(defn- params->labels-query-string [m] (str/join "," (for [[k v] m] (str (name k) "=" v))))
 
 (s/defn get-config-map-impl
   [ctx :- KubernetesContext
@@ -40,8 +43,9 @@
 
 (s/defn list-deployment-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
-   namespace :- s/Str]
-  (<!! (k8s-apps/list-namespaced-deployment ctx {:namespace namespace})))
+   namespace :- s/Str
+   opts :- (s/pred map?)]
+  (<!! (k8s-apps/list-namespaced-deployment ctx (merge opts {:namespace namespace}))))
 
 (s/defn delete-deployment-impl!
   [ctx :- KubernetesContext
@@ -86,13 +90,15 @@
                                               :namespace namespace})))
 
 (s/defn list-namespaces-impl :- [(s/pred map?)]
-  [ctx :- KubernetesContext]
-  (:items (<!! (k8s/list-namespace ctx))))
+  [ctx :- KubernetesContext
+   opts :- (s/pred map?)]
+  (:items (<!! (k8s/list-namespace ctx opts))))
 
 (s/defn list-pods-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
-   namespace :- s/Str]
-  (:items (<!! (k8s/list-namespaced-pod ctx {:namespace namespace}))))
+   namespace :- s/Str
+   opts :- (s/pred map?)]
+  (:items (<!! (k8s/list-namespaced-pod ctx (merge opts {:namespace namespace})))))
 
 (defn check-api-health
   [ctx]
@@ -117,7 +123,9 @@
     (-> (create-namespace-impl! (:ctx this) k8s-namespace)
         (raise-errors!)))
   (list-namespaces [this]
-    (-> (list-namespaces-impl (:ctx this))
+    (protocols.kubernetes-client/list-namespaces (:ctx this) {}))
+  (list-namespaces [this opts]
+    (-> (list-namespaces-impl (:ctx this) opts)
         (raise-errors!)))
   (delete-namespace! [this namespace-name]
     (-> (delete-namespace-impl! (:ctx this) namespace-name)
@@ -143,9 +151,11 @@
   (create-deployment! [this deployment]
     (-> (create-deployment-impl! (:ctx this) deployment)
         (raise-errors!)))
-  (list-deployment [this namespace]
-    (-> (list-deployment-impl (:ctx this) namespace)
+  (list-deployment [this namespace opts]
+    (-> (list-deployment-impl (:ctx this) namespace opts)
         (raise-errors!)))
+  (list-deployment [this namespace]
+    (protocols.kubernetes-client/list-deployment this namespace {}))
   (delete-deployment! [this deployment-name namespace]
     (-> (delete-deployment-impl! (:ctx this) deployment-name namespace)
         (raise-errors!)))
@@ -157,9 +167,11 @@
     (-> (patch-config-map-impl! (:ctx this) name namespace config-map)
         (raise-errors!)))
 
-  (list-pods [this namespace]
-    (-> (list-pods-impl (:ctx this) namespace)
+  (list-pods [this namespace opts]
+    (-> (list-pods-impl (:ctx this) namespace opts)
         (raise-errors!)))
+  (list-pods [this namespace]
+    (protocols.kubernetes-client/list-pods this namespace {}))
 
   component/Lifecycle
   (start [this]

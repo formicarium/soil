@@ -43,7 +43,6 @@
   [service-name devspace port]
   (str devspace "/" service-name ":" port))
 
-
 (s/defn get-node-internal-ip :- s/Str
   [node :- (s/pred map?)]
   (->> (get-in node [:status :addresses])
@@ -67,7 +66,6 @@
   [interface :- models.application/Interface
    host :- s/Str]
   (assoc interface :interface/host host))
-
 
 (s/defn render-interface
   [interface :- models.application/Interface

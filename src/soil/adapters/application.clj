@@ -172,15 +172,24 @@
                            (= (-> v :backend :servicePort)
                              interface-name)))))) first :host))
 
+(defn render-host [interface service ingress node]
+  (assoc interface :host (if (logic.interface/tcp-like? interface)
+                           (str (logic.interface/get-node-ip node) ":" (-> service
+                                                                           :spec
+                                                                           :ports
+                                                                           (misc/find-first #(= (:name %) (:name interface)))
+                                                                           :nodePort))
+                           (ingress->interface-host ingress (:name interface)))))
+
 (s/defn k8s->interfaces :- [models.application/Interface]
-  [deployment service ingress]
+  [deployment service ingress node]
   (mapcat
     (fn [container]
-      (map #(do #:interface{:container (:name container)
-                            :name      (:name %)
-                            :type      (service->port-type service (:name %))
-                            :host      (ingress->interface-host ingress (:name %))
-                            :port      (:containerPort %)}) (:ports container)))
+      (map #(render-host #:interface{:container (:name container)
+                                     :name      (:name %)
+                                     :type      (service->port-type service (:name %))
+                                     :port      (:containerPort %)} service ingress node)
+        (:ports container)))
     (-> deployment :spec :template :spec :containers)))
 
 (s/defn k8s-container->envs :- {s/Str s/Str}
@@ -209,9 +218,10 @@
 (s/defn k8s->application :- models.application/Application
   [deployment :- schemas.k8s.deployment/Deployment
    service :- schemas.k8s.service/Service
-   ingress :- schemas.k8s.ingress/Ingress]
+   ingress :- schemas.k8s.ingress/Ingress
+   node :- s/Any]
   #:application{:name       (-> deployment :metadata :labels :formicarium.io/application)
                 :devspace   (-> deployment :metadata :namespace)
-                :interfaces (vec (k8s->interfaces deployment service ingress))
+                :interfaces (vec (k8s->interfaces deployment service ingress node))
                 :containers (vec (k8s->containers deployment))
                 :patches    (vec (k8s->patches deployment service ingress))})

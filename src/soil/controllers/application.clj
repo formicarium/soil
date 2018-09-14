@@ -7,22 +7,6 @@
             [clj-service.protocols.config :as protocols.config]
             [soil.logic.application :as logic.application]))
 
-(s/defn get-tcp-hosts :- {s/Str s/Str}
-  [application :- models.application/Application
-   k8s-client :- protocols.k8s-client/IKubernetesClient]
-  (let [node-ip    (diplomat.kubernetes/get-pod-node-ip application k8s-client)
-        node-ports (diplomat.kubernetes/get-applications-node-ports application k8s-client)]
-    (->> (logic.application/get-tcp-like-interfaces application)
-         (mapv (fn [{:interface/keys [name]}]
-                 [name (str node-ip ":" (get node-ports name))]))
-         (into {}))))
-
-(s/defn render-application :- models.application/Application
-  [application :- models.application/Application
-   k8s-client :- protocols.k8s-client/KubernetesClient]
-  (->> (get-tcp-hosts application k8s-client)
-       (logic.application/render-tcp-hosts application)))
-
 (s/defn create-application! :- models.application/Application
   [application :- models.application/Application
    config :- protocols.config/IConfig
