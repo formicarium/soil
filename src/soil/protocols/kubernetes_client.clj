@@ -1,34 +1,36 @@
 (ns soil.protocols.kubernetes-client)
 
 (defprotocol KubernetesClient
-  (list-nodes [this] "Lists Kubernetes nodes")
+  (list-nodes [this])
 
-  (create-namespace! [this k8s-namespace] "Creates a Kubernetes namespace")
-  (list-namespaces [this] [this opts] "List Kubernetes namespaces")
-  (delete-namespace! [this namespace-name] "Deletes a Kubernetes namespace")
-  (finalize-namespace! [this namespace-name] "Finalizes a Kubernetes namespace")
+  (create-namespace! [this k8s-namespace])
+  (list-namespaces [this] [this opts])
+  (delete-namespace! [this namespace-name])
+  (finalize-namespace! [this namespace-name])
 
-  (create-ingress! [this ingress] "Creates a Kubernetes ingress")
-  (list-ingresses [this namespace opts] "List ingresses")
-  (delete-ingress! [this ingress-name namespace] "Delete a Kubernetes ingress")
-  (delete-all-ingresses! [this namespace] "Delete all Kubernetes ingresses in a namespace")
+  (get-ingress [this ingress-name namespace])
+  (create-ingress! [this ingress])
+  (list-ingresses [this namespace] [this namespace opts])
+  (delete-ingress! [this ingress-name namespace])
+  (delete-all-ingresses! [this namespace])
 
-  (create-service! [this service] "Creates a Kubernetes Service")
-  (list-services [this namespace] [this namespace opts] "List service")
-  (get-service [this service-name namespace] "Get a Kubernetes Service")
-  (delete-service! [this service-name namespace] "Delete a Kubernetes Service")
-  (delete-all-services! [this namespace] "Delete all Kubernetes services in a namespace")
+  (get-service [this service-name namespace])
+  (create-service! [this service])
+  (list-services [this namespace] [this namespace opts])
+  (delete-service! [this service-name namespace])
+  (delete-all-services! [this namespace])
 
-  (create-deployment! [this deployment] "Creates a Kubernetes deployment")
-  (list-deployment [this namespace] [this namespace opts] "List Kubernetes deployments")
-  (delete-deployment! [this deployment-name namespace] "Deletes a Kubernetes deployment")
-  (delete-all-deployments! [this namespace] "Delete all Kubernetes deployments in a namespace")
+  (get-deployment [this deployment-name namespace])
+  (create-deployment! [this deployment])
+  (list-deployment [this namespace] [this namespace opts])
+  (delete-deployment! [this deployment-name namespace])
+  (delete-all-deployments! [this namespace])
 
-  (delete-service-account! [this service-account-name namespace] "Delete a Kubernetes ServiceAccount")
+  (delete-service-account! [this service-account-name namespace])
 
-  (get-config-map [this name namespace] "Get a Kubernetes ConfigMap")
-  (patch-config-map! [this name namespace config-map] "Patch a Kubernetes ConfigMap")
+  (get-config-map [this name namespace])
+  (patch-config-map! [this name namespace config-map])
 
-  (list-pods [this namespace] [this namespace opts] "List Kubernetes Pods"))
+  (list-pods [this namespace] [this namespace opts]))
 
 (def IKubernetesClient (:on-interface KubernetesClient))

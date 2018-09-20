@@ -11,16 +11,45 @@
             [clj-service.exception :as exception]
             [org.httpkit.client :as http]
             [clj-service.protocols.config :as protocols.config]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clj-service.misc :as misc]))
 
 (def KubernetesContext {s/Keyword s/Any})
-(def ctx (k8s/make-context "http://localhost:9000"))
+(def debugctx (k8s/make-context "http://localhost:9000"))
+
+(defn- keyword-keys->str-keys [m] (misc/map-keys #(subs (str %) 1) m))
+
+(defn internalize-deployment
+  [deployment]
+  (-> deployment
+      (update-in [:metadata :labels] keyword-keys->str-keys)
+      (update-in [:metadata :annotations] keyword-keys->str-keys)
+      (update-in [:spec :selector :matchLabels] keyword-keys->str-keys)
+      (update-in [:spec :template :annotations] keyword-keys->str-keys)
+      (update-in [:spec :template :labels] keyword-keys->str-keys)))
+
+(defn internalize-service
+  [service]
+  (-> service
+      (update-in [:metadata :labels] keyword-keys->str-keys)
+      (update-in [:metadata :annotations] keyword-keys->str-keys)
+      (update-in [:spec :selector] keyword-keys->str-keys)))
+
+(defn internalize-ingress [ingress]
+  (-> ingress
+      (update-in [:metadata :labels] keyword-keys->str-keys)
+      (update-in [:metadata :annotations] keyword-keys->str-keys)))
+
+(defn internalize-pod [pod]
+  (-> pod
+      (update-in [:metadata :labels] keyword-keys->str-keys)))
+
 
 (defn testing-logs [ctx pod-name namespace-name]
   @(http/get (str (:server ctx) (str "/api/v1/namespaces/" namespace-name "/pods/" pod-name "/log"))
-            {:headers {"Authorization" (str "Bearer " (:token ctx))}
-             :as :stream
-             :insecure? true}))
+             {:headers   {"Authorization" (str "Bearer " (:token ctx))}
+              :as        :stream
+              :insecure? true}))
 
 (defn- params->labels-query-string [m] (str/join "," (for [[k v] m] (str (name k) "=" v))))
 
@@ -42,9 +71,7 @@
 (s/defn create-namespace-impl!
   [ctx :- KubernetesContext
    k8s-namespace :- (s/pred map?)]
-  (let [foo (<!! (k8s/create-namespace ctx k8s-namespace))]
-    (prn ctx foo)
-    foo))
+  (<!! (k8s/create-namespace ctx k8s-namespace)))
 
 (s/defn delete-namespace-impl!
   [ctx :- KubernetesContext namespace-name :- s/Str]
@@ -60,15 +87,16 @@
    namespace-name :- s/Str]
   (<!! (k8s-apps/deletecollection-namespaced-deployment ctx {:namespace namespace-name} {})))
 
-(s/defn list-all-services
-  [ctx :- KubernetesContext
-   namespace-name :- s/Str]
-  (:items (<!! (k8s/list-namespaced-service ctx {:namespace namespace-name}))))
-
 (s/defn delete-all-ingresses!
   [ctx :- KubernetesContext
    namespace-name :- s/Str]
   (<!! (extensions-v1beta1/deletecollection-namespaced-ingress ctx {:namespace namespace-name})))
+
+(s/defn list-ingresses
+  [ctx :- KubernetesContext
+   namespace-name :- s/Str
+   opts :- (s/pred map?)]
+  (mapv internalize-ingress (:items (<!! (extensions-v1beta1/list-namespaced-ingress ctx (assoc opts :namespace namespace-name))))))
 
 (s/defn delete-service-account!
   [ctx :- KubernetesContext
@@ -80,7 +108,8 @@
   [ctx :- KubernetesContext
    namespace :- s/Str
    opts :- (s/pred map?)]
-  (<!! (k8s-apps/list-namespaced-deployment ctx (merge opts {:namespace namespace}))))
+  (let [deployments (:items (<!! (k8s-apps/list-namespaced-deployment ctx (merge opts {:namespace namespace}))))]
+    (mapv internalize-deployment deployments)))
 
 (s/defn delete-deployment-impl!
   [ctx :- KubernetesContext
@@ -105,7 +134,7 @@
   [ctx :- KubernetesContext
    deployment :- schemas.kubernetes.deployment/Deployment]
   (<!! (k8s-apps/create-namespaced-deployment ctx deployment
-         {:namespace (get-in deployment [:metadata :namespace])})))
+                                              {:namespace (get-in deployment [:metadata :namespace])})))
 
 (s/defn create-ingress-impl! [ctx ingress]
   (<!! (extensions-v1beta1/create-namespaced-ingress ctx ingress {:namespace (get-in ingress [:metadata :namespace])})))
@@ -122,8 +151,8 @@
 
 (s/defn get-service-impl!
   [ctx service-name namespace]
-  (<!! (k8s/read-namespaced-service ctx {:namespace namespace
-                                         :name      service-name})))
+  (internalize-service (<!! (k8s/read-namespaced-service ctx {:namespace namespace
+                                                              :name      service-name}))))
 
 (s/defn list-nodes-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext]
@@ -145,12 +174,19 @@
   [ctx :- KubernetesContext
    namespace :- s/Str
    opts :- (s/pred map?)]
-  (:items (<!! (k8s/list-namespaced-pod ctx (merge opts {:namespace namespace})))))
+  (mapv internalize-pod (:items (<!! (k8s/list-namespaced-pod ctx (merge opts {:namespace namespace}))))))
+
+(s/defn list-services-impl :- [(s/pred map?)]
+  [ctx :- KubernetesContext
+   namespace :- s/Str
+   opts :- (s/pred map?)]
+  (mapv internalize-service (:items (<!! (k8s/list-namespaced-service ctx (merge opts {:namespace namespace}))))))
+
 
 (s/defn delete-all-services!
   [ctx :- KubernetesContext
    namespace-name :- s/Str]
-  (mapv #(delete-service-impl! ctx (get-in % [:metadata :name]) namespace-name) (list-all-services ctx namespace-name)))
+  (mapv #(delete-service-impl! ctx (get-in % [:metadata :name]) namespace-name) (list-services-impl ctx namespace-name {})))
 
 (defn check-api-health
   [ctx]
@@ -165,77 +201,101 @@
       (exception/server-error! {:log apiserver-response}))
     apiserver-response))
 
-(defrecord KubernetesClient [config]
+(defn get-ingress-impl [ctx namespace-name ingress-name]
+  (internalize-ingress (<!! (extensions-v1beta1/read-namespaced-ingress ctx {:namespace namespace-name
+                                                                             :name      ingress-name}))))
+
+(defn get-deployment-impl [ctx namespace deployment-name]
+  (internalize-deployment (<!! (k8s-apps/read-namespaced-deployment ctx {:namespace namespace
+                                                                         :name      deployment-name}))))
+
+(defrecord KubernetesClient [config ctx]
   protocols.kubernetes-client/KubernetesClient
-  (list-nodes [this]
-    (-> (list-nodes-impl (:ctx this))
+  (list-nodes [_]
+    (-> (list-nodes-impl ctx)
         (raise-errors!)))
 
-  (create-namespace! [this k8s-namespace]
-    (-> (create-namespace-impl! (:ctx this) k8s-namespace)
+  (create-namespace! [_ k8s-namespace]
+    (-> (create-namespace-impl! ctx k8s-namespace)
         (raise-errors!)))
-  (list-namespaces [this]
-    (protocols.kubernetes-client/list-namespaces (:ctx this) {}))
-  (list-namespaces [this opts]
-    (-> (list-namespaces-impl (:ctx this) opts)
+  (list-namespaces [_]
+    (protocols.kubernetes-client/list-namespaces ctx {}))
+  (list-namespaces [_ opts]
+    (-> (list-namespaces-impl ctx opts)
         (raise-errors!)))
-  (delete-namespace! [this namespace-name]
-    (-> (delete-namespace-impl! (:ctx this) namespace-name)
+  (delete-namespace! [_ namespace-name]
+    (-> (delete-namespace-impl! ctx namespace-name)
         (raise-errors!)))
-  (finalize-namespace! [this namespace-name]
-    (-> (finalize-namespace-impl! (:ctx this) namespace-name)
-        (raise-errors!)))
-
-  (create-ingress! [this ingress]
-    (-> (create-ingress-impl! (:ctx this) ingress)
-        (raise-errors!)))
-  (delete-ingress! [this ingress-name namespace]
-    (-> (delete-ingress-impl! (:ctx this) ingress-name namespace)
-        (raise-errors!)))
-  (delete-all-ingresses! [this namespace]
-    (-> (delete-all-ingresses! (:ctx this) namespace)
+  (finalize-namespace! [_ namespace-name]
+    (-> (finalize-namespace-impl! ctx namespace-name)
         (raise-errors!)))
 
-  (create-service! [this service]
-    (-> (create-service-impl! (:ctx this) service)
+  (get-ingress [_ ingress-name namespace]
+    (-> (get-ingress-impl ctx namespace ingress-name)
         (raise-errors!)))
-  (get-service [this service-name namespace]
-    (-> (get-service-impl! (:ctx this) service-name namespace)
+  (create-ingress! [_ ingress]
+    (-> (create-ingress-impl! ctx ingress)
         (raise-errors!)))
-  (delete-service! [this service-name namespace]
-    (-> (delete-service-impl! (:ctx this) service-name namespace)
+  (list-ingresses [_ namespace-name opts]
+    (-> (list-ingresses ctx namespace-name opts)
         (raise-errors!)))
-  (delete-all-services! [this namespace]
-    (delete-all-services! (:ctx this) namespace))
+  (list-ingresses [this namespace-name]
+    (protocols.kubernetes-client/list-ingresses this namespace-name {}))
+  (delete-ingress! [_ ingress-name namespace]
+    (-> (delete-ingress-impl! ctx ingress-name namespace)
+        (raise-errors!)))
+  (delete-all-ingresses! [_ namespace]
+    (-> (delete-all-ingresses! ctx namespace)
+        (raise-errors!)))
 
-  (create-deployment! [this deployment]
-    (-> (create-deployment-impl! (:ctx this) deployment)
+  (get-service [_ service-name namespace]
+    (-> (get-service-impl! ctx service-name namespace)
         (raise-errors!)))
-  (list-deployment [this namespace opts]
-    (-> (list-deployment-impl (:ctx this) namespace opts)
+  (list-services [_ namespace-name opts]
+    (-> (list-services-impl ctx namespace-name opts)
+        (raise-errors!)))
+  (list-services [this namespace-name]
+    (protocols.kubernetes-client/list-services this namespace-name {}))
+  (create-service! [_ service]
+    (-> (create-service-impl! ctx service)
+        (raise-errors!)))
+  (delete-service! [_ service-name namespace]
+    (-> (delete-service-impl! ctx service-name namespace)
+        (raise-errors!)))
+  (delete-all-services! [_ namespace]
+    (delete-all-services! ctx namespace))
+
+  (get-deployment [_ deployment-name namespace]
+    (-> (get-deployment-impl ctx namespace deployment-name)
+        (raise-errors!)))
+  (create-deployment! [_ deployment]
+    (-> (create-deployment-impl! ctx deployment)
+        (raise-errors!)))
+  (list-deployment [_ namespace opts]
+    (-> (list-deployment-impl ctx namespace opts)
         (raise-errors!)))
   (list-deployment [this namespace]
     (protocols.kubernetes-client/list-deployment this namespace {}))
-  (delete-deployment! [this deployment-name namespace]
-    (-> (delete-deployment-impl! (:ctx this) deployment-name namespace)
+  (delete-deployment! [_ deployment-name namespace]
+    (-> (delete-deployment-impl! ctx deployment-name namespace)
         (raise-errors!)))
-  (delete-all-deployments! [this namespace]
-    (-> (delete-all-deployments! (:ctx this) namespace)
-        (raise-errors!)))
-
-  (delete-service-account! [this service-account-name namespace]
-    (-> (delete-service-account! (:ctx this) service-account-name namespace)
+  (delete-all-deployments! [_ namespace]
+    (-> (delete-all-deployments! ctx namespace)
         (raise-errors!)))
 
-  (get-config-map [this name namespace]
-    (-> (get-config-map-impl (:ctx this) name namespace)
-        (raise-errors!)))
-  (patch-config-map! [this name namespace config-map]
-    (-> (patch-config-map-impl! (:ctx this) name namespace config-map)
+  (delete-service-account! [_ service-account-name namespace]
+    (-> (delete-service-account! ctx service-account-name namespace)
         (raise-errors!)))
 
-  (list-pods [this namespace opts]
-    (-> (list-pods-impl (:ctx this) namespace opts)
+  (get-config-map [_ name namespace]
+    (-> (get-config-map-impl ctx name namespace)
+        (raise-errors!)))
+  (patch-config-map! [_ name namespace config-map]
+    (-> (patch-config-map-impl! ctx name namespace config-map)
+        (raise-errors!)))
+
+  (list-pods [_ namespace opts]
+    (-> (list-pods-impl ctx namespace opts)
         (raise-errors!)))
   (list-pods [this namespace]
     (protocols.kubernetes-client/list-pods this namespace {}))
@@ -245,7 +305,7 @@
     (let [kubernetes-url (protocols.config/get-in! config [:kubernetes :url])
           token-filepath (protocols.config/get-in! config [:kubernetes :token-filepath])
 
-          ctx            (k8s/make-context kubernetes-url {:token (slurp token-filepath)})]
+          ctx (k8s/make-context kubernetes-url {:token (slurp token-filepath)})]
       (assoc this
         :ctx ctx
         :health (check-api-health ctx))))

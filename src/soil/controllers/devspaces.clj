@@ -44,14 +44,6 @@
            (diplomat.config-server/get-devspace-applications create-devspace config config-server))
        (mapv #(controllers.application/create-application! % config k8s-client))))
 
-(s/defn render-devspace :- models.devspace/Devspace
-  [devspace :- models.devspace/Devspace
-   k8s-client :- protocols.k8s/KubernetesClient]
-  (-> devspace
-      (update-in [:devspace/hive] #(controllers.application/render-application % k8s-client))
-      (update-in [:devspace/tanajura] #(controllers.application/render-application % k8s-client))
-      (update-in [:devspace/applications] (fn [apps] (mapv #(controllers.application/render-application % k8s-client) apps)))))
-
 (s/defn create-devspace! :- models.devspace/Devspace
   [{devspace-name :name :as new-devspace} :- schemas.devspace/CreateDevspace
    config :- protocols.config/IConfig
@@ -68,25 +60,24 @@
 
 (s/defn get-devspaces :- [models.devspace/Devspace]
   [k8s-client :- protocols.k8s/KubernetesClient]
-  (mapv #(render-devspace % k8s-client) #_(k8s/get-devspaces)))
+  (->> (diplomat.kubernetes/get-devspaces-names k8s-client)
+       (mapv #(diplomat.kubernetes/get-devspace % k8s-client))))
 
 (s/defn one-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str
    k8s-client :- protocols.k8s/KubernetesClient]
-  (-> #_(etcd.devspace/get-devspace devspace-name)
-      (render-devspace k8s-client)))
+  (diplomat.kubernetes/get-devspace devspace-name k8s-client))
 
 (s/defn check-if-devspace-exists :- (s/maybe models.devspace/Devspace)
   [devspace-name :- s/Str
-   etcd :- protocols.etcd/IEtcd]
-  ((->> #_(etcd.devspace/get-devspaces etcd)
-        (mapv :devspace/name)
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  ((->> (diplomat.kubernetes/get-devspaces-names k8s-client)
         set) devspace-name))
 
 (s/defn delete-devspace!
   [devspace :- s/Str
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (if-let [deleteable-devspace (check-if-devspace-exists devspace)]
+  (if-let [deleteable-devspace (check-if-devspace-exists devspace k8s-client)]
     (protocols.k8s/delete-namespace! k8s-client deleteable-devspace)
     (exception/not-found! {:log (str "Devspace " devspace " does not exist")})))
 

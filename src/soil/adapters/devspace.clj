@@ -14,7 +14,7 @@
   [devspace-name :- s/Str]
   {:metadata
    {:name   devspace-name
-    :labels {:formicarium.io/kind config/fmc-devspace-label}}})
+    :labels {"formicarium.io/kind" config/fmc-devspace-label}}})
 
 (s/defn internal->wire :- schemas.devspace/Devspace
   [devspace :- models.devspace/Devspace]
@@ -32,4 +32,4 @@
    config :- protocols.config/IConfig]
   (some->> create-devspace
            :setup
-           (mapv #(adapters.application/definition->application % config))))
+           (mapv #(adapters.application/definition+devspace->application % (:name create-devspace) config))))

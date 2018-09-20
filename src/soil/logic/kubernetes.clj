@@ -4,7 +4,7 @@
 
 (s/defn res->app-name :- (s/maybe s/Str)
   [res :- (s/pred map?)]
-  (get-in res [:metadata :labels :formicarium.io/application]))
+  (get-in res [:metadata :labels "formicarium.io/application"]))
 
 (s/defn find-by-app-name :- (s/maybe (s/pred map?))
   [app-name :- s/Str

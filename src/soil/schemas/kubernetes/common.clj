@@ -27,7 +27,7 @@
    (s/optional-key :optional) s/Bool})
 
 (def ObjectMeta
-  {(s/optional-key :labels)                     {s/Keyword s/Str},
+  {(s/optional-key :labels)                     {s/Str s/Str},
    (s/optional-key :clusterName)                s/Str,
    (s/optional-key :generation)                 (s/maybe s/Int),
    (s/optional-key :creationTimestamp)          Time,

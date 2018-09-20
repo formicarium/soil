@@ -30,46 +30,46 @@
 
 (defn one-devspace
   [{{:keys [k8s-client]} :components
-    devspace-name             :devspace-name}]
+    devspace-name        :devspace-name}]
   {:status 200
    :body   (->> (controllers.devspace/one-devspace devspace-name k8s-client)
                 adapters.devspace/internal->wire)})
 
 (defn create-devspace!
   [{{:keys [config config-server k8s-client]} :components
-    new-devspace                                   :data}]
+    new-devspace                              :data}]
   {:status 201
    :body   (-> (controllers.devspace/create-devspace! new-devspace config config-server k8s-client)
                adapters.devspace/internal->wire)})
 
 (defn delete-devspace!
   [{{:keys [k8s-client]} :components
-    devspace                  :devspace-name}]
+    devspace             :devspace-name}]
   (controllers.devspace/delete-devspace! devspace k8s-client)
   {:status 200
    :body   {}})
 
 (defn create-service!
   [{{:keys [k8s-client config-server config]} :components
-    service-deploy                                 :data
-    devspace-name                                  :devspace-name}]
+    service-deploy                            :data
+    devspace-name                             :devspace-name}]
   {:status 200
    :body   (->> (controllers.service/create-service! service-deploy devspace-name config k8s-client config-server)
                 (mapv adapters.application/application->urls))})
 
 (defn delete-service!
   [{{:keys [k8s-client config]} :components
-    devspace-name                    :devspace-name
-    service-name                     :service-name}]
+    devspace-name               :devspace-name
+    service-name                :service-name}]
   {:status 200
    :body   (controllers.service/delete-service! service-name devspace-name k8s-client)})
 
 (defn one-service
-  [{{:keys [etcd k8s-client]} :components
+  [{{:keys [k8s-client]} :components
     devspace-name             :devspace-name
     service-name              :service-name}]
   {:status 200
-   :body   (-> (controllers.service/one-service devspace-name service-name etcd k8s-client)
+   :body   (-> (controllers.service/one-service devspace-name service-name k8s-client)
                adapters.application/internal->wire)})
 
 (def routes
