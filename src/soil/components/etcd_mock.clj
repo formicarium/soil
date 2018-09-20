@@ -4,6 +4,8 @@
             [clj-service.protocols.config :as protocols.config]
             [clj-service.exception :as exception]))
 
+
+
 (defrecord EtcdMock [config mock]
   component/Lifecycle
   (start [this]
@@ -17,7 +19,8 @@
     this)
 
   (get-maybe [this key]
-    (get @mock key))
+    {:key key
+     :value (get @mock key)})
 
   (get! [this key]
     (or (protocols.etcd/get-maybe this key)
@@ -25,17 +28,18 @@
                                :log           :etcd-get-error})))
 
   (get-prefix! [this key]
-    (select-keys @mock (->> @mock
-                            keys
-                            (filter (fn [k] (clojure.string/starts-with? k key))))))
+    (->> (select-keys @mock (->> @mock
+                             keys
+                             (filter (fn [k] (clojure.string/starts-with? k key)))))
+         (mapv (fn [[k v]] {:key k :value v}))))
 
   (delete! [this key]
     (swap! mock (fn [m] (dissoc m key)))
     this)
 
   (delete-prefix! [this key]
-    (swap! mock (fn [m] (dissoc m (-> (protocols.etcd/get-prefix! this key)
-                                      keys))))))
+    (swap! mock (fn [m] (apply dissoc (->> (mapv :key (protocols.etcd/get-prefix! this key))
+                                      (concat [m])))))))
 
 (defn new-etcd []
   (map->EtcdMock {}))
