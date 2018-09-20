@@ -21,10 +21,6 @@
   [application :- models.application/Application]
   (> (count (get-http-like-interfaces application)) 0))
 
-(s/defn has-tcp-like-interfaces :- s/Bool
-  [application :- models.application/Application]
-  (> (count (get-tcp-like-interfaces application)) 0))
-
 (s/defn make-container-syncable :- models.application/Container
   [{:application/keys [name]} :- models.application/Application
    {:container/keys [syncable? env] :as container} :- models.application/Container]

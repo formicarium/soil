@@ -29,15 +29,8 @@
                         :interface/container                s/Str
                         :interface/host                     s/Str})
 
-(s/defschema ApplicationStatus (s/enum
-                                 :application.status/template
-                                 :application.status/creating
-                                 :application.status/running
-                                 :application.status/dead))
-
 (s/defschema Application #:application{:name       s/Str
                                        :devspace   s/Str
                                        :containers [Container]
                                        :interfaces [Interface]
-                                       :status     ApplicationStatus
                                        :patches    [EntityPatch]})
