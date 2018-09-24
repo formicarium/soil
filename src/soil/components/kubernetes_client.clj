@@ -193,11 +193,27 @@
   (let [api-resources (<!! (k8s/get-api-resources ctx))]
     (not= (:success api-resources) false)))
 
+(defn- throw-ex [name type code details]
+  (log/error :log :exception-error :type type :name name :code code :details details)
+  (throw (ex-info name (merge {:type type :code code :message name} details) (:exception details))))
+
+(defn- conflict!
+  [log-object]
+  (throw-ex "Conflict" :conflict 409 log-object))
+
+(defn- invalid-input!
+  [log-object]
+  (throw-ex "InvalidInput" :invalid-input 422 log-object))
+
 (defn raise-errors! [apiserver-response]
   (log/info :log apiserver-response)
   (if (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
     (case (:code apiserver-response)
-      409 (throw (ex-info (:reason apiserver-response) (merge {:type type :code 409 :message (:reason apiserver-response)} apiserver-response) (:exception apiserver-response)))
+      401 (exception/unauthorized! {:log apiserver-response})
+      403 (exception/forbidden! {:log apiserver-response})
+      404 (exception/not-found! {:log apiserver-response})
+      409 (conflict! {:log apiserver-response})
+      422 (invalid-input! {:log apiserver-response})
       (exception/server-error! {:log apiserver-response}))
     apiserver-response))
 
