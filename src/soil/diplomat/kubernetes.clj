@@ -3,11 +3,15 @@
             [soil.adapters.devspace :as adapters.devspace]
             [clojure.set :refer [difference]]
             [schema.core :as s]
+            [soil.logic.kubernetes :as logic.kubernetes]
             [soil.adapters.application :as adapters.application]
             [soil.models.application :as models.application]
-            [soil.logic.application :as logic.application]
             [clj-service.protocols.config :as protocols.config]
-            [soil.logic.interface :as logic.interface]))
+            [soil.logic.interface :as logic.interface]
+            [soil.schemas.kubernetes.deployment :as schemas.k8s.deployment]
+            [clj-service.misc :as misc]
+            [soil.models.devspace :as models.devspace]
+            [soil.logic.application :as logic.application]))
 
 (s/defn create-namespace! :- s/Str
   [namespace-name :- s/Str
@@ -35,74 +39,41 @@
   (->> (adapters.application/application->ingress application)
        (protocols.k8s/create-ingress! k8s-client)))
 
-(s/defn get-tcp-available-ports :- [s/Int]
-  [num :- [s/Int]
-   {:keys [name namespace max-port min-port]} :- (s/pred map?)
+(s/defn get-pod-by-app-name :- (s/maybe (s/pred map?))
+  [namespace-name :- s/Str
+   app-name :- s/Str
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (take num
-        (->> (protocols.k8s/get-config-map k8s-client name namespace)
-             :data
-             keys
-             (mapv clojure.core/name)
-             set
-             (difference (set (map str (range min-port max-port)))))))
-
-(s/defn gen-tcp-ports-for-application :- [s/Int]
-  [application :- models.application/Application
-   ingress-config :- (s/pred map?)
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (get-tcp-available-ports (count (logic.application/get-tcp-like-interfaces application))
-                           ingress-config
-                           k8s-client))
-
-(s/defn get-tcp-ports-mapped :- [s/Int]
-  [{:application/keys [devspace] :as application} :- models.application/Application
-   {:keys [name namespace]} :- (s/pred map?)
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (->> (protocols.k8s/get-config-map k8s-client name namespace)
-       :data
-       (filter (fn [[_ v]] (clojure.string/starts-with? v (str devspace "/" (:application/name application)))))
-       keys
-       (mapv (comp read-string clojure.core/name))))
-
-(s/defn add-tcp-config-map-entries!
-  [application :- models.application/Application
-   config :- protocols.config/IConfig
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (let [{:keys [name namespace] :as ingress-config} (protocols.config/get-in! config [:kubernetes :ingress-config-map])]
-    (->> (gen-tcp-ports-for-application application ingress-config k8s-client)
-         (logic.application/get-config-map application)
-         (protocols.k8s/patch-config-map! k8s-client name namespace))))
-
-(s/defn delete-tcp-config-map-entries!
-  [application :- models.application/Application
-   config :- protocols.config/IConfig
-   k8s-client :- protocols.k8s/IKubernetesClient]
-  (let [{:keys [name namespace] :as ingress-config} (protocols.config/get-in! config [:kubernetes :ingress-config-map])]
-    (->> (get-tcp-ports-mapped application ingress-config k8s-client)
-         (logic.application/get-erase-config-map application)
-         (protocols.k8s/patch-config-map! k8s-client name namespace))))
-
+  (->> (protocols.k8s/list-pods k8s-client namespace-name)
+       (filter #(= app-name (get-in % [:metadata :labels "formicarium.io/application"])))
+       first))
 
 (s/defn get-pod-by-app :- (s/maybe (s/pred map?))
   [{:application/keys [devspace name]} :- models.application/Application
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (->> (protocols.k8s/list-pods k8s-client devspace)
-       (filter #(= name (get-in % [:metadata :labels :app])))
-       first))
+  (get-pod-by-app-name devspace name k8s-client))
 
 (s/defn get-pod-node-name :- (s/maybe s/Str)
   [application :- models.application/Application
-   k8s-client :- protocols.k8s/IKubernetesClient]
+   k8s-client :- protocols.k8s/KubernetesClient]
   (get-in (get-pod-by-app application k8s-client) [:spec :nodeName]))
 
 (s/defn get-pod-node-ip :- {(s/maybe (s/pred map?)) (s/maybe (s/pred map?))}
   [application :- models.application/Application
    k8s-client :- protocols.k8s/IKubernetesClient]
   (->> (protocols.k8s/list-nodes k8s-client)
-       (filter (fn [node] (= (get-in node [:metadata :name]) (get-pod-node-name application k8s-client))))
+       (filter (fn [node] (= (get-in node [:metadata :name])
+                             (get-pod-node-name application k8s-client))))
        first
        logic.interface/get-node-ip))
+
+(s/defn get-node-by-app-name :- (s/maybe (s/pred map?))
+  [namespace-name :- s/Str
+   app-name :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (->> (protocols.k8s/list-nodes k8s-client)
+       (filter (fn [node] (= (get-in node [:metadata :name])
+                             (get-in (get-pod-by-app-name namespace-name app-name k8s-client) [:spec :nodeName]))))
+       first))
 
 (s/defn get-applications-node-ports :- {s/Str s/Int}
   [{:application/keys [name devspace]} :- models.application/Application
@@ -112,3 +83,44 @@
        :ports
        (mapv (fn [{:keys [name nodePort]}] {name nodePort}))
        (apply merge)))
+
+(s/defn get-devspaces-names :- [s/Str]
+  [k8s-client :- protocols.k8s/IKubernetesClient]
+  (->> (protocols.k8s/list-namespaces k8s-client {:label-selector "formicarium.io/kind=fmc-devspace"})
+       (mapv (comp :name :metadata))))
+
+(s/defn get-deployments :- [schemas.k8s.deployment/Deployment]
+  [namespace :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (protocols.k8s/list-deployment k8s-client namespace))
+
+(s/defn app-name->k8s-label :- {:label-selector s/Str}
+  [app-name :- s/Str]
+  {:label-selector (str "formicarium.io/application=" app-name)})
+
+(s/defn get-applications :- [models.application/Application]
+  [devspace-name :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [deployments (protocols.k8s/list-deployment k8s-client devspace-name)
+        services    (protocols.k8s/list-services k8s-client devspace-name)
+        ingresses   (protocols.k8s/list-ingresses k8s-client devspace-name)
+        pods        (protocols.k8s/list-pods k8s-client devspace-name)
+        nodes       (protocols.k8s/list-nodes k8s-client)]
+    (map
+      (fn [deployment]
+        (let [app-name (logic.kubernetes/res->app-name deployment)
+              service (logic.kubernetes/find-by-app-name app-name services)
+              ingress (logic.kubernetes/find-by-app-name app-name ingresses)
+              pod (logic.kubernetes/find-by-app-name app-name pods)
+              node (misc/find-first nodes #(= (get-in % [:metadata :name]) (get-in pod [:spec :nodeName])))]
+          (adapters.application/k8s->application deployment service ingress node)))
+      deployments)))
+
+(s/defn get-devspace :- models.devspace/Devspace
+  [devspace-name :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [applications (get-applications devspace-name k8s-client)]
+    #:devspace {:name devspace-name
+                :hive (logic.application/get-hive applications)
+                :tanajura (logic.application/get-tanajura applications)
+                :applications (logic.application/but-hive-tanajura applications)}))

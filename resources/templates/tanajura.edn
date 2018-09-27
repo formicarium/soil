@@ -1,9 +1,10 @@
 {:name       "tanajura"
  :devspace   "{{devspace}}"
  :containers [{:name      "tanajura"
-               :image     "formicarium/tanajura:1.8.0"
+               :image     "formicarium/tanajura:1.8.1"
                :syncable? false
-               :env       {"DEVSPACE" "{{devspace}}"}}]
+               :env       {"DEVSPACE" "{{devspace}}"
+                           "SOIL_URL" "{{soil-url}}"}}]
  :interfaces [{:name      "default"
                :port      3002
                :type      :http

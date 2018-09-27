@@ -33,7 +33,7 @@
   (boolean (#{:interface.type/http :interface.type/https} type)))
 
 (s/defn tcp-like? :- s/Bool
-  [{:interface/keys [type]} :- models.application/Interface]
+  [{:interface/keys [type]}]
   (boolean (#{:interface.type/nrepl :interface.type/tcp} type)))
 
 (s/defn exposed? :- s/Bool
@@ -43,15 +43,14 @@
   [service-name devspace port]
   (str devspace "/" service-name ":" port))
 
-
-(s/defn get-node-internal-ip :- s/Str
+(s/defn get-node-internal-ip :- (s/maybe s/Str)
   [node :- (s/pred map?)]
   (->> (get-in node [:status :addresses])
        (filter (fn [{:keys [type]}] (= type "InternalIP")))
        first
        :address))
 
-(s/defn get-node-external-ip :- s/Str
+(s/defn get-node-external-ip :- (s/maybe s/Str)
   [node :- (s/pred map?)]
   (->> (get-in node [:status :addresses])
        (filter (fn [{:keys [type]}] (= type "ExternalIP")))
@@ -67,7 +66,6 @@
   [interface :- models.application/Interface
    host :- s/Str]
   (assoc interface :interface/host host))
-
 
 (s/defn render-interface
   [interface :- models.application/Interface

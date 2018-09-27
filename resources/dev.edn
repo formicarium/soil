@@ -1,12 +1,12 @@
 #merge [#include "base.edn"
         {:env                "dev"
-         :domain             "formicarium.host"
-         :config-server      {:url "http://localhost:8081"}
-         :kubernetes         {:url "http://localhost:9000"
+         :domain             #or [#env DOMAIN "formicarium.host"]
+         :config-server      {:url #or [#env CONFIG_SERVER_URL "http://localhost:8081"]}
+         :kubernetes         {:url                "http://localhost:9000"
                               :image-pull-secrets []
-                              :token-filepath     "/secrets/token"
-                              :ingress-config-map {:name      "my-nginx-nginx-ingress-tcp"
-                                                   :namespace "default"
+                              :token-filepath     #or [#env KUBERNETES_TOKEN_FILEPATH "/secrets/token"]
+                              :ingress-config-map {:name      #or [#env INGRESS_CONFIG_MAP_NAME "fmc-ingress-tcp"]
+                                                   :namespace "fmc-infra"
                                                    :max-port  5000
                                                    :min-port  4000}}
          :etcd               {:endpoint "localhost"
