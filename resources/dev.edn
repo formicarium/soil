@@ -1,5 +1,6 @@
 #merge [#include "base.edn"
         {:env                "dev"
+         :soil               {:url #or [#env SOIL_ENV "http://soil.fmc.nubank.com.br"]}
          :domain             #or [#env DOMAIN "formicarium.host"]
          :config-server      {:url #or [#env CONFIG_SERVER_URL "http://localhost:8081"]}
          :kubernetes         {:url                "http://localhost:9000"

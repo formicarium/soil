@@ -207,7 +207,8 @@
 
 (defn raise-errors! [apiserver-response]
   (log/info :log apiserver-response)
-  (if (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
+  (if (or (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
+          (nil? apiserver-response))
     (case (:code apiserver-response)
       401 (exception/unauthorized! {:log apiserver-response})
       403 (exception/forbidden! {:log apiserver-response})

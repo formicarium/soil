@@ -33,7 +33,8 @@
 (s/defn tanajura-application :- models.application/Application
   [devspace :- s/Str
    config :- protocols.config/Config]
-  (load-application-template "tanajura" {:devspace devspace} config))
+  (load-application-template "tanajura" {:devspace devspace
+                                         :soil-url (protocols.config/get-in! config [:soil :url])} config))
 
 (s/defn create-setup! :- [models.application/Application]
   [create-devspace :- schemas.devspace/CreateDevspace

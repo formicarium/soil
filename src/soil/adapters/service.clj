@@ -18,7 +18,7 @@
 
 (s/defn devspace+service-deploy->args-map :- (s/pred map?)
   [devspace :- s/Str
-   service-deploy :- schemas.service/DeployService]
-  (merge {:devspace devspace
-          :name     (:name service-deploy)}
-         (:args service-deploy)))
+   {:keys [args syncable definition] :as deploy-service} :- schemas.service/DeployService]
+  {:devspace devspace
+   :name (:name deploy-service)
+   :local syncable})

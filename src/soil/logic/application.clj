@@ -26,11 +26,11 @@
    {:container/keys [syncable? env] :as container} :- models.application/Container]
   (if syncable?
     (assoc container :container/env (merge env {"STARTUP_CLONE"    "true"
-                                                "START_AFTER_PULL" "true"
+                                                "START_AFTER_PULL" "false"
                                                 "STINGER_PORT"     "24000"
                                                 "APP_PATH"         "/app"
                                                 "STINGER_SCRIPTS"  "/scripts"
-                                                "GIT_URI"          (str "http://tanajura:6666/" name ".git")})) ;; TODO: get tanajura-git from etcd
+                                                "GIT_URI"          (str "http://tanajura:6666/" name ".git")}))
     container))
 
 (s/defn get-syncable-container :- models.application/Container
