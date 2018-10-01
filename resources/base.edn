@@ -1,5 +1,5 @@
 {:port               8080
- :version            "0.1.26"
+ :version            "0.1.27"
  :soil               {:url #or [#env SOIL_URL "http://soil.formicarium.host"]}
  :skip-kubectl-proxy false}
 

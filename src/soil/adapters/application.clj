@@ -105,7 +105,7 @@
        (mapv (fn [{:interface/keys [name port type]}]
                {:protocol   (if (= type :interface.type/udp) "UDP" "TCP")
                 :name       name
-                :port       (if (= name "default") 80 port)
+                :port       port
                 :targetPort name}))))
 
 (s/defn application->service :- (s/pred map?)

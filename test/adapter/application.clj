@@ -71,7 +71,7 @@
               :labels {"formicarium.io/application" "kratos"}
               :name "kratos"
               :namespace "carlos-rodrigues"}
-   :spec {:ports [{:name "default" :port 80 :protocol "TCP" :targetPort "default"}
+   :spec {:ports [{:name "default" :port 8080 :protocol "TCP" :targetPort "default"}
                   {:name "repl" :port 35000 :protocol "TCP" :targetPort "repl"}]
           :selector {"formicarium.io/application" "kratos"}
           :type "NodePort"}})
