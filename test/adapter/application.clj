@@ -28,12 +28,23 @@
                  :patches    [{:kind  "Deployment"
                                :patch {:op    "add"
                                        :path  "/spec/template/metadata/annotations/iam.amazonaws.com~1role"
-                                       :value "role-arn"}}]})
+                                       :value "role-arn"}}
+                              {:kind  "Deployment"
+                               :patch {:op    "add"
+                                       :path  "/spec/template/spec/volumes"
+                                       :value [{:name     "shared-m2"
+                                                :hostPath {:path "/var/.m2"
+                                                           :type "DirectoryOrCreate"}}]}}
+                              {:kind  "Deployment"
+                               :patch {:op    "add"
+                                       :path  "/spec/template/spec/containers/0/volumeMounts"
+                                       :value [{:name      "shared-m2"
+                                                :mountPath "/root/.m2"}]}}]})
 
 (def kratos-deployment
   {:apiVersion "apps/v1"
    :kind "Deployment"
-   :metadata {:annotations {"formicarium.io/patches" "[{:op \"add\", :path \"/spec/template/metadata/annotations/iam.amazonaws.com~1role\", :value \"role-arn\"}]"
+   :metadata {:annotations {"formicarium.io/patches" "[{:op \"add\", :path \"/spec/template/metadata/annotations/iam.amazonaws.com~1role\", :value \"role-arn\"} {:op \"add\", :path \"/spec/template/spec/volumes\", :value [{:name \"shared-m2\", :hostPath {:path \"/var/.m2\", :type \"DirectoryOrCreate\"}}]} {:op \"add\", :path \"/spec/template/spec/containers/0/volumeMounts\", :value [{:name \"shared-m2\", :mountPath \"/root/.m2\"}]}]"
                             "formicarium.io/syncable-containers" "#{\"kratos\"}"}
               :labels {"formicarium.io/application" "kratos"}
               :name "kratos"
@@ -43,7 +54,10 @@
           :template {:metadata {:annotations {"iam.amazonaws.com/role" "role-arn"}
                                 :labels {"formicarium.io/application" "kratos"}
                                 :namespace "carlos-rodrigues"}
-                     :spec {:containers [{:env [{:name "STARTUP_CLONE"
+                     :spec {:volumes [{:name "shared-m2"
+                                       :hostPath {:path "/var/.m2"
+                                                  :type "DirectoryOrCreate"}}]
+                            :containers [{:env [{:name "STARTUP_CLONE"
                                                  :value "true"}
                                                 {:name "STINGER_PORT"
                                                  :value "24000"}
@@ -52,6 +66,8 @@
                                                  :value "/scripts"}]
                                           :image "formicarium/chamber-lein:latest"
                                           :name "kratos"
+                                          :volumeMounts [{:name "shared-m2"
+                                                          :mountPath "/root/.m2"}]
                                           :ports [{:containerPort 8080
                                                    :name "default"}
                                                   {:containerPort 35000
