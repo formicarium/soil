@@ -32,27 +32,32 @@
                  #{"labels" "annotations" "matchLabels" "selector"}))
 
 (s/defn definition+devspace->application :- models.application/Application
-  [app-definition :- schemas.application/ApplicationDefinition
+  [{app-name :name
+    service :service
+    patches :patches
+    containers :containers
+    interfaces :interfaces
+    :as app-definition} :- schemas.application/ApplicationDefinition
    devspace :- s/Str
    args :- (s/pred map?)
    config :- protocols.config/IConfig]
   (let [domain (protocols.config/get! config :domain)
         devspace-name (or devspace (:devspace app-definition))]
-    #:application{:name       (:name app-definition)
+    #:application{:name       app-name
+                  :service    (or service app-name)
                   :devspace   devspace-name
                   :args       args
                   :containers (mapv #(do #:container{:name      (:name %)
                                                      :image     (:image %)
                                                      :env       (:env %)
-                                                     :syncable? (:syncable? %)}) (:containers app-definition))
+                                                     :syncable? (:syncable? %)}) containers)
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
                                               {:devspace devspace-name
-                                               :service  (:name app-definition)
+                                               :service  app-name
                                                :type     (keyword "interface.type" (name (:type %)))
-                                               :domain   domain})) (:interfaces app-definition))
-                  :status     :application.status/template
-                  :patches    (:patches app-definition)}))
+                                               :domain   domain})) interfaces)
+                  :patches    patches}))
 
 
 (s/defn definition->application :- models.application/Application
