@@ -25,6 +25,7 @@
                        :dependencies [[midje "1.9.1"]
                                       [clj-http-fake "1.0.3"]
                                       [http-kit.fake "0.2.1"]
+                                      [nubank/matcher-combinators "0.5.0"]
                                       [nubank/selvage "0.0.1"]]}
              :uberjar {:aot [soil.server]}}
   :main ^{:skip-aot true} soil.server)

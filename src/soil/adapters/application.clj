@@ -156,8 +156,9 @@
 
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
+  (log/info :application application)
   (->> (:application/interfaces application)
-       (mapv (fn [{:interface/keys [name host type]}] {name (str (clojure.core/name type) "://" host)}))
+       (mapv (fn [{:interface/keys [name host type]}] {(keyword name) (str (clojure.core/name type) "://" host)}))
        (apply merge)))
 
 (s/defn internal->wire :- schemas.application/Application
@@ -185,7 +186,6 @@
                               interface-name)))))) first :host))
 
 (defn render-host [interface service ingress node]
-  (prn "JAZZ" node)
   (assoc interface :interface/host (if (logic.interface/tcp-like? interface)
                                      (str (logic.interface/get-node-ip node) ":" (-> service
                                                                                      :spec

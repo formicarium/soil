@@ -112,3 +112,28 @@
 (fact "externalize application to ingress"
   (adapters.application/application->ingress kratos-application) => kratos-ingress)
 
+(fact "application->urls"
+  (adapters.application/application->urls #:application{:name       "hive"
+                                                        :devspace   "carlos"
+                                                        :containers [#:container{:name      "hive"
+                                                                                 :image     "formicarium/hive:5d98c11ea5db32bd8db5478e7389f0ac668d79b3"
+                                                                                 :env       {}
+                                                                                 :syncable? false}]
+                                                        :interfaces [#:interface{:name      "default"
+                                                                                 :port      8080
+                                                                                 :type      :interface.type/http
+                                                                                 :container "hive"
+                                                                                 :host      "hive.carlos.formicarium.host"}
+                                                                     #:interface{:name      "repl"
+                                                                                 :port      2222
+                                                                                 :type      :interface.type/nrepl
+                                                                                 :container "hive"
+                                                                                 :host      "10.129.218.235:30292"}
+                                                                     #:interface{:name      "zmq"
+                                                                                 :port      9898
+                                                                                 :type      :interface.type/tcp
+                                                                                 :container "hive"
+                                                                                 :host      "10.129.218.235:32372"}]
+                                                        :patches    nil}) => {:default "http://hive.carlos.formicarium.host"
+                                                                              :repl  "nrepl://10.129.218.235:30292"
+                                                                              :zmq   "tcp://10.129.218.235:32372"})

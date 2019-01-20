@@ -32,7 +32,7 @@
 
 (s/defn tanajura-application :- models.application/Application
   [devspace :- s/Str
-   config :- protocols.config/Config]
+   config :- protocols.config/IConfig]
   (load-application-template "tanajura" {:devspace devspace
                                          :soil-url (protocols.config/get-in! config [:soil :url])} config))
 
@@ -60,13 +60,13 @@
 
 
 (s/defn get-devspaces :- [models.devspace/Devspace]
-  [k8s-client :- protocols.k8s/KubernetesClient]
+  [k8s-client :- protocols.k8s/IKubernetesClient]
   (->> (diplomat.kubernetes/get-devspaces-names k8s-client)
        (mapv #(diplomat.kubernetes/get-devspace % k8s-client))))
 
 (s/defn one-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
+   k8s-client :- protocols.k8s/IKubernetesClient]
   (diplomat.kubernetes/get-devspace devspace-name k8s-client))
 
 (s/defn check-if-devspace-exists :- (s/maybe models.devspace/Devspace)

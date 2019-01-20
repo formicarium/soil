@@ -32,10 +32,10 @@
        (mapv #(create-one-application % config k8s-client))))
 
 (s/defn ^:private try-delete :- s/Str
-  [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s/KubernetesClient s/Str s/Str]])
+  [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s/IKubernetesClient s/Str s/Str]])
    service-name :- s/Str
    devspace :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
+   k8s-client :- protocols.k8s/IKubernetesClient]
   (try (delete-fn k8s-client service-name devspace)
        "deleted"
        (catch Exception e
@@ -45,7 +45,7 @@
 (s/defn delete-service!
   [service-name :- s/Str
    devspace :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
+   k8s-client :- protocols.k8s/IKubernetesClient]
   {:deployment (try-delete protocols.k8s/delete-deployment! service-name devspace k8s-client)
    :service    (try-delete protocols.k8s/delete-service! service-name devspace k8s-client)
    :ingress    (try-delete protocols.k8s/delete-ingress! service-name devspace k8s-client)})
@@ -53,7 +53,7 @@
 (s/defn one-service :- models.application/Application
   [devspace-name :- s/Str
    service-name :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
+   k8s-client :- protocols.k8s/IKubernetesClient]
   (let [deployment (protocols.k8s/get-deployment k8s-client service-name devspace-name)
         service (protocols.k8s/get-service k8s-client service-name devspace-name)
         ingress (protocols.k8s/get-ingress k8s-client service-name devspace-name)

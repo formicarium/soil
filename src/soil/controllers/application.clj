@@ -19,7 +19,8 @@
 
 (s/defn render-application :- models.application/Application
   [application :- models.application/Application
-   k8s-client :- protocols.k8s-client/KubernetesClient]
+   k8s-client :- protocols.k8s-client/IKubernetesClient]
+  (log/info :application application)
   (->> (get-tcp-hosts application k8s-client)
        (logic.application/render-tcp-hosts application)))
 
