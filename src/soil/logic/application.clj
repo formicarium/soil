@@ -59,7 +59,8 @@
 (s/defn syncable?
   [{:application/keys [containers]} :- models.application/Application]
   (->> (mapv :container/syncable? containers)
-       (some true?)))
+       (some true?)
+       boolean))
 
 (s/defn get-entity-patches :- [models.application/Patch]
   [{:application/keys [patches]} :- models.application/Application

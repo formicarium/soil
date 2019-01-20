@@ -11,7 +11,8 @@
             [soil.logic.interface :as logic.interface]
             [clj-json-patch.core :as json-patch]
             [clj-service.misc :as misc]
-            [clj-service.adapt :as adapt]))
+            [clj-service.adapt :as adapt]
+            [io.pedestal.log :as log]))
 
 (defn- deep-map-keys
   [f coll skip-keys]
@@ -33,11 +34,13 @@
 (s/defn definition+devspace->application :- models.application/Application
   [app-definition :- schemas.application/ApplicationDefinition
    devspace :- s/Str
+   args :- (s/pred map?)
    config :- protocols.config/IConfig]
   (let [domain (protocols.config/get! config :domain)
         devspace-name (or devspace (:devspace app-definition))]
     #:application{:name       (:name app-definition)
                   :devspace   devspace-name
+                  :args       args
                   :containers (mapv #(do #:container{:name      (:name %)
                                                      :image     (:image %)
                                                      :env       (:env %)
@@ -54,8 +57,9 @@
 
 (s/defn definition->application :- models.application/Application
   [app-definition :- schemas.application/ApplicationDefinition
+   args :- (s/pred map?)
    config :- protocols.config/IConfig]
-  (definition+devspace->application app-definition (:devspace app-definition) config))
+  (definition+devspace->application app-definition (:devspace app-definition) args config))
 
 (s/defn application+container->container-ports :- [(s/pred map?)]
   [application :- models.application/Application
@@ -86,7 +90,8 @@
        :metadata   {:name        app-name
                     :labels      {"formicarium.io/application" app-name}
                     :annotations {"formicarium.io/patches"             (adapt/to-edn patches)
-                                  "formicarium.io/syncable-containers" (adapt/to-edn syncable-containers)}
+                                  "formicarium.io/syncable-containers" (adapt/to-edn syncable-containers)
+                                  "formicarium.io/args"                (adapt/to-edn {})}
                     :namespace   devspace}
        :spec       {:selector {:matchLabels {"formicarium.io/application" app-name}}
                     :replicas 1

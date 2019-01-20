@@ -23,13 +23,14 @@
 
 (s/defn create-service! :- [models.application/Application]
   [service-deploy :- schemas.service/DeployService,
-   devspace :- s/Str
+   devspace-name :- s/Str
    config :- protocols.config/IConfig
    k8s-client :- protocols.k8s/IKubernetesClient
    config-server :- protocols.config-server-client/IConfigServerClient]
-  (->> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace config)
-           (diplomat.config-server/get-service-application devspace service-deploy config config-server))
-       (mapv #(create-one-application % config k8s-client))))
+  (let [devspace-args (diplomat.kubernetes/get-devspace-args devspace-name k8s-client)]
+    (->> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace-name config)
+             (diplomat.config-server/get-service-application devspace-name devspace-args service-deploy config config-server))
+         (mapv #(create-one-application % config k8s-client)))))
 
 (s/defn ^:private try-delete :- s/Str
   [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s/IKubernetesClient s/Str s/Str]])

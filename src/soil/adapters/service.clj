@@ -7,18 +7,22 @@
             [clj-service.protocols.config :as protocols.config]))
 
 (s/defn service-deploy+devspace->application? :- (s/maybe [models.application/Application])
-  [service-deploy :- schemas.service/DeployService
+  [{:keys [definition args] service-name :name :as service-deploy} :- schemas.service/DeployService
    devspace :- s/Str
    config :- protocols.config/IConfig]
-  (some-> service-deploy
-          :definition
-          (adapters.definition/devspaced-app-definition->app-defintion devspace (:name service-deploy))
-          (adapters.application/definition->application config)
+  (some-> definition
+          (adapters.definition/devspaced-app-definition->app-defintion devspace service-name)
+          (adapters.application/definition->application args config)
           vector))
 
 (s/defn devspace+service-deploy->args-map :- (s/pred map?)
-  [devspace :- s/Str
-   {:keys [args syncable definition] :as deploy-service} :- schemas.service/DeployService]
-  {:devspace devspace
-   :name (:name deploy-service)
-   :local syncable})
+  [devspace-name :- s/Str
+   devspace-args :- (s/pred map?)
+   {:keys [args syncable definition] :or {args {}} :as deploy-service} :- schemas.service/DeployService]
+  (merge
+    args
+    {:devspace {:name devspace-name
+                :args devspace-args}
+     :name     (:name deploy-service)
+     :args     args
+     :local    syncable}))

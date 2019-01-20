@@ -1,7 +1,7 @@
 #merge [#include "base.edn"
         {:env                "dev"
          :domain             #or [#env DOMAIN "formicarium.host"]
-         :config-server      {:url #or [#env CONFIG_SERVER_URL "http://localhost:8081"]}
+         :config-server      {:url #or [#env CONFIG_SERVER_URL "http://localhost:8549"]}
          :kubernetes         {:url                "http://localhost:9000"
                               :image-pull-secrets []
                               :token-filepath     #or [#env KUBERNETES_TOKEN_FILEPATH "/secrets/token"]

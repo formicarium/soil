@@ -5,6 +5,7 @@
             [soil.models.application :as models.application]
             [soil.protocols.kubernetes-client :as protocols.k8s-client]
             [clj-service.protocols.config :as protocols.config]
+            [io.pedestal.log :as log]
             [soil.logic.application :as logic.application]))
 
 (s/defn get-tcp-hosts :- {s/Str s/Str}
@@ -32,4 +33,5 @@
   (diplomat.kubernetes/create-service! application k8s-client)
   (when (logic.application/has-http-like-interfaces application)
     (diplomat.kubernetes/create-ingress! application k8s-client))
+  (log/info :application application :before true)
   (render-application application k8s-client))

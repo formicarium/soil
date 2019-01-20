@@ -6,7 +6,8 @@
             [com.stuartsierra.component :as component]
             [clj-service.adapt :as adapt]
             [soil.schemas.application :as schemas.application]
-            [clj-service.schema :as schema]))
+            [clj-service.schema :as schema]
+            [io.pedestal.log :as log]))
 
 (def ConfigServerArgs {s/Keyword s/Any})
 (def create-devspace-path "/api/devspace/create")
@@ -14,7 +15,7 @@
 
 (s/defn http-post
   [url :- s/Str
-   body :- s/Any]
+   body :- (s/pred map?)]
   @(http-client/request {:url     url
                          :method  :post
                          :body    (adapt/to-json body)
@@ -31,6 +32,7 @@
 (s/defn on-create-devspace :- [schemas.application/ApplicationDefinition]
   [devspace-args :- ConfigServerArgs
    config-server :- protocols.config-server/IConfigServerClient]
+  (log/info :on-create-devspace devspace-args)
   (-> (http-post (str (:url config-server) create-devspace-path) devspace-args)
       :body
       adapt/from-json

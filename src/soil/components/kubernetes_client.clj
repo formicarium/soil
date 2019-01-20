@@ -35,6 +35,12 @@
       (update-in [:metadata :annotations] keyword-keys->str-keys)
       (update-in [:spec :selector] keyword-keys->str-keys)))
 
+(defn internalize-namespace
+  [k8s-namespace]
+  (-> k8s-namespace
+      (update-in [:metadata :labels] keyword-keys->str-keys)
+      (update-in [:metadata :annotations] keyword-keys->str-keys)))
+
 (defn internalize-ingress [ingress]
   (-> ingress
       (update-in [:metadata :labels] keyword-keys->str-keys)
@@ -168,12 +174,14 @@
 (s/defn list-namespaces-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    opts :- (s/pred map?)]
-  (:items (<!! (k8s/list-namespace ctx opts))))
+  (log/info :ctx ctx :opts opts)
+  (mapv internalize-namespace (:items (<!! (k8s/list-namespace ctx opts)))))
 
 (s/defn list-pods-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    namespace :- s/Str
    opts :- (s/pred map?)]
+  (log/info :pods "Listing pods")
   (mapv internalize-pod (:items (<!! (k8s/list-namespaced-pod ctx (merge opts {:namespace namespace}))))))
 
 (s/defn list-services-impl :- [(s/pred map?)]
@@ -235,8 +243,8 @@
   (create-namespace! [_ k8s-namespace]
     (-> (create-namespace-impl! ctx k8s-namespace)
         (raise-errors!)))
-  (list-namespaces [_]
-    (protocols.kubernetes-client/list-namespaces ctx {}))
+  (list-namespaces [this]
+    (protocols.kubernetes-client/list-namespaces this {}))
   (list-namespaces [_ opts]
     (-> (list-namespaces-impl ctx opts)
         (raise-errors!)))
