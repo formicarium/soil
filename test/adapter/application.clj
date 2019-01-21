@@ -7,6 +7,7 @@
 
 (s/def kratos-application :- models.application/Application
   #:application {:name       "kratos"
+                 :service    "kratos"
                  :devspace   "carlos-rodrigues"
                  :containers [#:container {:name      "kratos"
                                            :image     "formicarium/chamber-lein:latest"
@@ -43,37 +44,39 @@
 
 (def kratos-deployment
   {:apiVersion "apps/v1"
-   :kind "Deployment"
-   :metadata {:annotations {"formicarium.io/patches" "[{:op \"add\", :path \"/spec/template/metadata/annotations/iam.amazonaws.com~1role\", :value \"role-arn\"} {:op \"add\", :path \"/spec/template/spec/volumes\", :value [{:name \"shared-m2\", :hostPath {:path \"/var/.m2\", :type \"DirectoryOrCreate\"}}]} {:op \"add\", :path \"/spec/template/spec/containers/0/volumeMounts\", :value [{:name \"shared-m2\", :mountPath \"/root/.m2\"}]}]"
-                            "formicarium.io/syncable-containers" "#{\"kratos\"}"}
-              :labels {"formicarium.io/application" "kratos"}
-              :name "kratos"
-              :namespace "carlos-rodrigues"}
-   :spec {:replicas 1
-          :selector {:matchLabels {"formicarium.io/application" "kratos"}}
-          :template {:metadata {:annotations {"iam.amazonaws.com/role" "role-arn"}
-                                :labels {"formicarium.io/application" "kratos"}
-                                :namespace "carlos-rodrigues"}
-                     :spec {:volumes [{:name "shared-m2"
-                                       :hostPath {:path "/var/.m2"
-                                                  :type "DirectoryOrCreate"}}]
-                            :containers [{:env [{:name "STARTUP_CLONE"
-                                                 :value "true"}
-                                                {:name "STINGER_PORT"
-                                                 :value "24000"}
-                                                {:name "APP_PATH" :value "/app"}
-                                                {:name "STINGER_SCRIPTS"
-                                                 :value "/scripts"}]
-                                          :image "formicarium/chamber-lein:latest"
-                                          :name "kratos"
-                                          :volumeMounts [{:name "shared-m2"
-                                                          :mountPath "/root/.m2"}]
-                                          :ports [{:containerPort 8080
-                                                   :name "default"}
-                                                  {:containerPort 35000
-                                                   :name "repl"}]}]
-                            :hostname "kratos"
-                            :imagePullSecrets [{:name "docker-registry-secret"}]}}}})
+   :kind       "Deployment"
+   :metadata   {:annotations {"formicarium.io/patches"             "[{:op \"add\", :path \"/spec/template/metadata/annotations/iam.amazonaws.com~1role\", :value \"role-arn\"} {:op \"add\", :path \"/spec/template/spec/volumes\", :value [{:name \"shared-m2\", :hostPath {:path \"/var/.m2\", :type \"DirectoryOrCreate\"}}]} {:op \"add\", :path \"/spec/template/spec/containers/0/volumeMounts\", :value [{:name \"shared-m2\", :mountPath \"/root/.m2\"}]}]"
+                              "formicarium.io/syncable-containers" "#{\"kratos\"}"
+                              "formicarium.io/args"                "{}"}
+                :labels      {"formicarium.io/application" "kratos"
+                              "formicarium.io/service"     "kratos"}
+                :name        "kratos"
+                :namespace   "carlos-rodrigues"}
+   :spec       {:replicas 1
+                :selector {:matchLabels {"formicarium.io/application" "kratos"}}
+                :template {:metadata {:annotations {"iam.amazonaws.com/role" "role-arn"}
+                                      :labels      {"formicarium.io/application" "kratos"}
+                                      :namespace   "carlos-rodrigues"}
+                           :spec     {:volumes          [{:name     "shared-m2"
+                                                          :hostPath {:path "/var/.m2"
+                                                                     :type "DirectoryOrCreate"}}]
+                                      :containers       [{:env          [{:name  "STARTUP_CLONE"
+                                                                          :value "true"}
+                                                                         {:name  "STINGER_PORT"
+                                                                          :value "24000"}
+                                                                         {:name "APP_PATH" :value "/app"}
+                                                                         {:name  "STINGER_SCRIPTS"
+                                                                          :value "/scripts"}]
+                                                          :image        "formicarium/chamber-lein:latest"
+                                                          :name         "kratos"
+                                                          :volumeMounts [{:name      "shared-m2"
+                                                                          :mountPath "/root/.m2"}]
+                                                          :ports        [{:containerPort 8080
+                                                                          :name          "default"}
+                                                                         {:containerPort 35000
+                                                                          :name          "repl"}]}]
+                                      :hostname         "kratos"
+                                      :imagePullSecrets [{:name "docker-registry-secret"}]}}}})
 
 
 (fact "externalize application to deployment"
@@ -112,3 +115,29 @@
 (fact "externalize application to ingress"
   (adapters.application/application->ingress kratos-application) => kratos-ingress)
 
+(fact "application->urls"
+  (adapters.application/application->urls #:application{:name       "hive"
+                                                        :service    "hive"
+                                                        :devspace   "carlos"
+                                                        :containers [#:container{:name      "hive"
+                                                                                 :image     "formicarium/hive:5d98c11ea5db32bd8db5478e7389f0ac668d79b3"
+                                                                                 :env       {}
+                                                                                 :syncable? false}]
+                                                        :interfaces [#:interface{:name      "default"
+                                                                                 :port      8080
+                                                                                 :type      :interface.type/http
+                                                                                 :container "hive"
+                                                                                 :host      "hive.carlos.formicarium.host"}
+                                                                     #:interface{:name      "repl"
+                                                                                 :port      2222
+                                                                                 :type      :interface.type/nrepl
+                                                                                 :container "hive"
+                                                                                 :host      "10.129.218.235:30292"}
+                                                                     #:interface{:name      "zmq"
+                                                                                 :port      9898
+                                                                                 :type      :interface.type/tcp
+                                                                                 :container "hive"
+                                                                                 :host      "10.129.218.235:32372"}]
+                                                        :patches    nil}) => {:default "http://hive.carlos.formicarium.host"
+                                                                              :repl  "nrepl://10.129.218.235:30292"
+                                                                              :zmq   "tcp://10.129.218.235:32372"})

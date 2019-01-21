@@ -23,40 +23,47 @@
 
 (s/defn create-service! :- [models.application/Application]
   [service-deploy :- schemas.service/DeployService,
-   devspace :- s/Str
+   devspace-name :- s/Str
    config :- protocols.config/IConfig
    k8s-client :- protocols.k8s/IKubernetesClient
    config-server :- protocols.config-server-client/IConfigServerClient]
-  (->> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace config)
-           (diplomat.config-server/get-service-application devspace service-deploy config config-server))
-       (mapv #(create-one-application % config k8s-client))))
+  (let [devspace-args (diplomat.kubernetes/get-devspace-args devspace-name k8s-client)]
+    (->> (or (adapters.service/service-deploy+devspace->application? service-deploy devspace-name config)
+             (diplomat.config-server/get-service-application devspace-name devspace-args service-deploy config config-server))
+         (mapv #(create-one-application % config k8s-client)))))
 
 (s/defn ^:private try-delete :- s/Str
-  [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s/KubernetesClient s/Str s/Str]])
+  [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s/IKubernetesClient s/Str s/Str]])
    service-name :- s/Str
    devspace :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
+   k8s-client :- protocols.k8s/IKubernetesClient]
   (try (delete-fn k8s-client service-name devspace)
        "deleted"
        (catch Exception e
          (.printStackTrace e)
          "not-deleted")))
 
-(s/defn delete-service!
-  [service-name :- s/Str
-   devspace :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
-  {:deployment (try-delete protocols.k8s/delete-deployment! service-name devspace k8s-client)
-   :service    (try-delete protocols.k8s/delete-service! service-name devspace k8s-client)
-   :ingress    (try-delete protocols.k8s/delete-ingress! service-name devspace k8s-client)})
+(s/defn delete-application!
+  [app-name :- s/Str
+   devspace-name :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  {:name app-name
+   :kubernetes
+   {:deployment (try-delete protocols.k8s/delete-deployment! app-name devspace-name k8s-client)
+    :service    (try-delete protocols.k8s/delete-service! app-name devspace-name k8s-client)
+    :ingress    (try-delete protocols.k8s/delete-ingress! app-name devspace-name k8s-client)}})
 
-(s/defn one-service :- models.application/Application
+(s/defn delete-service!
+  [svc-name :- s/Str
+   devspace-name :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [deployments (diplomat.kubernetes/get-deployments-for-service devspace-name svc-name k8s-client)
+        apps (diplomat.kubernetes/get-applications-for-deployments devspace-name deployments k8s-client)]
+    (mapv #(delete-application! (:application/name %) devspace-name k8s-client) apps)))
+
+(s/defn one-service :- [models.application/Application]
   [devspace-name :- s/Str
    service-name :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
-  (let [deployment (protocols.k8s/get-deployment k8s-client service-name devspace-name)
-        service (protocols.k8s/get-service k8s-client service-name devspace-name)
-        ingress (protocols.k8s/get-ingress k8s-client service-name devspace-name)
-        node (diplomat.kubernetes/get-node-by-app-name devspace-name service-name k8s-client)]
-    (prn "ONE SERVICE " (adapters.application/k8s->application deployment service ingress node))
-    (adapters.application/k8s->application deployment service ingress node)))
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [deployments (diplomat.kubernetes/get-deployments-for-service devspace-name service-name k8s-client)]
+    (diplomat.kubernetes/get-applications-for-deployments devspace-name deployments k8s-client)))

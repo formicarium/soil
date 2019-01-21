@@ -5,6 +5,7 @@
             [soil.models.application :as models.application]
             [soil.protocols.kubernetes-client :as protocols.k8s-client]
             [clj-service.protocols.config :as protocols.config]
+            [io.pedestal.log :as log]
             [soil.logic.application :as logic.application]))
 
 (s/defn get-tcp-hosts :- {s/Str s/Str}
@@ -19,7 +20,7 @@
 
 (s/defn render-application :- models.application/Application
   [application :- models.application/Application
-   k8s-client :- protocols.k8s-client/KubernetesClient]
+   k8s-client :- protocols.k8s-client/IKubernetesClient]
   (->> (get-tcp-hosts application k8s-client)
        (logic.application/render-tcp-hosts application)))
 

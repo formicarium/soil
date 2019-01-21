@@ -1,4 +1,5 @@
 {:name       "tanajura"
+ :service    "tanajura"
  :devspace   "{{devspace}}"
  :containers [{:name      "tanajura"
                :image     "formicarium/tanajura:1.8.1"

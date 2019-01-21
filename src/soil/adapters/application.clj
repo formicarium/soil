@@ -11,7 +11,8 @@
             [soil.logic.interface :as logic.interface]
             [clj-json-patch.core :as json-patch]
             [clj-service.misc :as misc]
-            [clj-service.adapt :as adapt]))
+            [clj-service.adapt :as adapt]
+            [io.pedestal.log :as log]))
 
 (defn- deep-map-keys
   [f coll skip-keys]
@@ -31,31 +32,39 @@
                  #{"labels" "annotations" "matchLabels" "selector"}))
 
 (s/defn definition+devspace->application :- models.application/Application
-  [app-definition :- schemas.application/ApplicationDefinition
+  [{app-name :name
+    service :service
+    patches :patches
+    containers :containers
+    interfaces :interfaces
+    :as app-definition} :- schemas.application/ApplicationDefinition
    devspace :- s/Str
+   args :- (s/pred map?)
    config :- protocols.config/IConfig]
   (let [domain (protocols.config/get! config :domain)
         devspace-name (or devspace (:devspace app-definition))]
-    #:application{:name       (:name app-definition)
+    #:application{:name       app-name
+                  :service    (or service app-name)
                   :devspace   devspace-name
+                  :args       args
                   :containers (mapv #(do #:container{:name      (:name %)
                                                      :image     (:image %)
                                                      :env       (:env %)
-                                                     :syncable? (:syncable? %)}) (:containers app-definition))
+                                                     :syncable? (:syncable? %)}) containers)
                   :interfaces (mapv #(logic.interface/new
                                        (merge %
                                               {:devspace devspace-name
-                                               :service  (:name app-definition)
+                                               :service  app-name
                                                :type     (keyword "interface.type" (name (:type %)))
-                                               :domain   domain})) (:interfaces app-definition))
-                  :status     :application.status/template
-                  :patches    (:patches app-definition)}))
+                                               :domain   domain})) interfaces)
+                  :patches    patches}))
 
 
 (s/defn definition->application :- models.application/Application
   [app-definition :- schemas.application/ApplicationDefinition
+   args :- (s/pred map?)
    config :- protocols.config/IConfig]
-  (definition+devspace->application app-definition (:devspace app-definition) config))
+  (definition+devspace->application app-definition (:devspace app-definition) args config))
 
 (s/defn application+container->container-ports :- [(s/pred map?)]
   [application :- models.application/Application
@@ -74,7 +83,7 @@
                               :value (str (val %))}) (:container/env container))}) containers))
 
 (s/defn application->deployment :- (s/pred map?)
-  [{:application/keys [devspace] :as application} :- models.application/Application
+  [{:application/keys [devspace service] :as application} :- models.application/Application
    image-pull-secrets :- [s/Str]]
   (let [app-name (:application/name application)
         syncable-containers (set (map :container/name (filter #(true? (:container/syncable? %))
@@ -84,9 +93,11 @@
       {:apiVersion "apps/v1"
        :kind       "Deployment"
        :metadata   {:name        app-name
-                    :labels      {"formicarium.io/application" app-name}
+                    :labels      {"formicarium.io/application" app-name
+                                  "formicarium.io/service"     service}
                     :annotations {"formicarium.io/patches"             (adapt/to-edn patches)
-                                  "formicarium.io/syncable-containers" (adapt/to-edn syncable-containers)}
+                                  "formicarium.io/syncable-containers" (adapt/to-edn syncable-containers)
+                                  "formicarium.io/args"                (adapt/to-edn {})}
                     :namespace   devspace}
        :spec       {:selector {:matchLabels {"formicarium.io/application" app-name}}
                     :replicas 1
@@ -156,13 +167,15 @@
 
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
+  (log/debug :application application)
   (->> (:application/interfaces application)
-       (mapv (fn [{:interface/keys [name host type]}] {name (str (clojure.core/name type) "://" host)}))
+       (mapv (fn [{:interface/keys [name host type]}] {(keyword name) (str (clojure.core/name type) "://" host)}))
        (apply merge)))
 
 (s/defn internal->wire :- schemas.application/Application
   [application :- models.application/Application]
   {:name     (:application/name application)
+   :service  (:application/service application)
    :devspace (:application/devspace application)
    :syncable (logic.application/syncable? application)
    :links    (application->urls application)})
@@ -185,7 +198,6 @@
                               interface-name)))))) first :host))
 
 (defn render-host [interface service ingress node]
-  (prn "JAZZ" node)
   (assoc interface :interface/host (if (logic.interface/tcp-like? interface)
                                      (str (logic.interface/get-node-ip node) ":" (-> service
                                                                                      :spec
@@ -234,9 +246,12 @@
    service :- schemas.k8s.service/Service
    ingress :- schemas.k8s.ingress/Ingress
    node :- s/Any]
-  #:application{:name       (-> deployment :metadata :labels (get "formicarium.io/application"))
-                :devspace   (-> deployment :metadata :namespace)
-                :interfaces (vec (k8s->interfaces deployment service ingress node))
-                :containers (vec (k8s->containers deployment))
-                :patches    (vec (k8s->patches deployment service ingress))})
+  (let [app-name (-> deployment :metadata :labels (get "formicarium.io/application"))
+        svc-name (-> deployment :metadata :labels (get "formicarium.io/service"))]
+    #:application{:name       app-name
+                  :service    (or svc-name app-name)
+                  :devspace   (-> deployment :metadata :namespace)
+                  :interfaces (vec (k8s->interfaces deployment service ingress node))
+                  :containers (vec (k8s->containers deployment))
+                  :patches    (vec (k8s->patches deployment service ingress))}))
 

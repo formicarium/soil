@@ -12,7 +12,8 @@
             [soil.schemas.devspace :as schemas.devspace]
             [clj-service.exception :as exception]
             [soil.diplomat.config-server :as diplomat.config-server]
-            [soil.adapters.devspace :as adapters.devspace]))
+            [soil.adapters.devspace :as adapters.devspace]
+            [io.pedestal.log :as log]))
 
 (s/defn ^:private load-application-template :- models.application/Application
   [name :- s/Str
@@ -23,7 +24,7 @@
       slurp
       (selmer.parser/render replace-map)
       read-string
-      (adapters.application/definition->application config)))
+      (adapters.application/definition->application {} config)))
 
 (s/defn hive-application :- models.application/Application
   [devspace :- s/Str
@@ -32,7 +33,7 @@
 
 (s/defn tanajura-application :- models.application/Application
   [devspace :- s/Str
-   config :- protocols.config/Config]
+   config :- protocols.config/IConfig]
   (load-application-template "tanajura" {:devspace devspace
                                          :soil-url (protocols.config/get-in! config [:soil :url])} config))
 
@@ -46,11 +47,11 @@
        (mapv #(controllers.application/create-application! % config k8s-client))))
 
 (s/defn create-devspace! :- models.devspace/Devspace
-  [{devspace-name :name :as new-devspace} :- schemas.devspace/CreateDevspace
+  [{devspace-name :name devspace-args :args :as new-devspace} :- schemas.devspace/CreateDevspace
    config :- protocols.config/IConfig
    config-server :- soil.protocols.config-server-client/IConfigServerClient
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (diplomat.kubernetes/create-namespace! devspace-name k8s-client)
+  (diplomat.kubernetes/create-namespace! devspace-name devspace-args k8s-client)
   #:devspace{:name         devspace-name
              :hive         (-> (hive-application devspace-name config)
                                (controllers.application/create-application! config k8s-client))
@@ -60,13 +61,13 @@
 
 
 (s/defn get-devspaces :- [models.devspace/Devspace]
-  [k8s-client :- protocols.k8s/KubernetesClient]
+  [k8s-client :- protocols.k8s/IKubernetesClient]
   (->> (diplomat.kubernetes/get-devspaces-names k8s-client)
        (mapv #(diplomat.kubernetes/get-devspace % k8s-client))))
 
 (s/defn one-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str
-   k8s-client :- protocols.k8s/KubernetesClient]
+   k8s-client :- protocols.k8s/IKubernetesClient]
   (diplomat.kubernetes/get-devspace devspace-name k8s-client))
 
 (s/defn check-if-devspace-exists :- (s/maybe models.devspace/Devspace)

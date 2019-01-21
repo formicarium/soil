@@ -16,7 +16,7 @@
                  [formicarium/clj-json-patch "0.1.9"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
-  :test-paths ["test/" "selvage/"]
+  :test-paths ["test/"]
   :repositories [["central" {:url "https://repo1.maven.org/maven2/" :snapshots false}]
                  ["clojars" {:url "https://clojars.org/repo/"}]]
 
@@ -25,6 +25,7 @@
                        :dependencies [[midje "1.9.1"]
                                       [clj-http-fake "1.0.3"]
                                       [http-kit.fake "0.2.1"]
+                                      [nubank/matcher-combinators "0.5.0"]
                                       [nubank/selvage "0.0.1"]]}
              :uberjar {:aot [soil.server]}}
   :main ^{:skip-aot true} soil.server)

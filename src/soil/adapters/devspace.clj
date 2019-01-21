@@ -8,13 +8,16 @@
             [clj-service.misc :as misc]
             [soil.models.application :as models.application]
             [soil.logic.application :as logic.application]
+            [clj-service.adapt :as adapt]
             [clj-service.protocols.config :as protocols.config]))
 
 (s/defn devspace-name->create-namespace :- schemas.k8s.namespace/CreateNamespace
-  [devspace-name :- s/Str]
+  [devspace-name :- s/Str
+   devspace-args :- (s/pred map?)]
   {:metadata
-   {:name   devspace-name
-    :labels {"formicarium.io/kind" config/fmc-devspace-label}}})
+   {:name        devspace-name
+    :labels      {"formicarium.io/kind" config/fmc-devspace-label}
+    :annotations {"formicarium.io/args" (adapt/to-edn devspace-args)}}})
 
 (s/defn internal->wire :- schemas.devspace/Devspace
   [devspace :- models.devspace/Devspace]
@@ -24,12 +27,12 @@
       (update :applications #(mapv adapters.application/internal->wire %))))
 
 (s/defn create-devspace->args-map :- (s/pred map?)
-  [create-devspace :- schemas.devspace/CreateDevspace]
-  (merge {:name (:name create-devspace)} (:args create-devspace)))
+  [{devspace-name :name args :args} :- schemas.devspace/CreateDevspace]
+  (misc/assoc-if {:name devspace-name} :args args))
 
 (s/defn create-devspace->applications? :- (s/maybe [models.application/Application])
-  [create-devspace :- schemas.devspace/CreateDevspace
+  [{devspace-name :name devspace-args :args :as create-devspace} :- schemas.devspace/CreateDevspace
    config :- protocols.config/IConfig]
   (some->> create-devspace
            :setup
-           (mapv #(adapters.application/definition+devspace->application % (:name create-devspace) config))))
+           (mapv #(adapters.application/definition+devspace->application % devspace-name devspace-args config))))
