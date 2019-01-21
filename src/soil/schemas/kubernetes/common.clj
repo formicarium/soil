@@ -51,4 +51,4 @@
 
 (def LabelSelector
   {(s/optional-key :matchExpressions) [LabelSelectorRequirement],
-   (s/optional-key :matchLabels)      {s/Keyword s/Str}})
+   (s/optional-key :matchLabels)      {s/Str s/Str}})

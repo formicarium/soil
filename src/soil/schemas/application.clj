@@ -4,6 +4,7 @@
 
 (s/defschema InterfaceType (s/enum :tcp :udp :http :https :nrepl))
 (s/defschema ApplicationDefinition {:name                      s/Str
+                                    (s/optional-key :service)  s/Str
                                     (s/optional-key :devspace) s/Str
                                     :containers                [{:name                       s/Str
                                                                  :image                      s/Str
@@ -20,6 +21,7 @@
 
 (s/defschema ApplicationUrls {s/Keyword s/Str})
 (s/defschema Application {:name     s/Str
+                          :service  s/Str
                           :devspace s/Str
                           :syncable s/Bool
                           :links    ApplicationUrls})

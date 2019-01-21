@@ -30,7 +30,9 @@
                         :interface/host                     s/Str})
 
 (s/defschema Application #:application{:name       s/Str
+                                       :service    s/Str
                                        :devspace   s/Str
+                                       (s/optional-key :args) (s/pred map?)
                                        :containers [Container]
                                        :interfaces [Interface]
                                        :patches    [EntityPatch]})

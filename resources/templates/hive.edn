@@ -1,4 +1,5 @@
 {:name       "hive"
+ :service    "hive"
  :devspace   "{{devspace}}"
  :containers [{:name      "hive"
                :image     "formicarium/hive:5d98c11ea5db32bd8db5478e7389f0ac668d79b3"

@@ -35,6 +35,12 @@
       (update-in [:metadata :annotations] keyword-keys->str-keys)
       (update-in [:spec :selector] keyword-keys->str-keys)))
 
+(defn internalize-namespace
+  [k8s-namespace]
+  (-> k8s-namespace
+      (update-in [:metadata :labels] keyword-keys->str-keys)
+      (update-in [:metadata :annotations] keyword-keys->str-keys)))
+
 (defn internalize-ingress [ingress]
   (-> ingress
       (update-in [:metadata :labels] keyword-keys->str-keys)
@@ -168,7 +174,7 @@
 (s/defn list-namespaces-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    opts :- (s/pred map?)]
-  (:items (<!! (k8s/list-namespace ctx opts))))
+  (mapv internalize-namespace (:items (<!! (k8s/list-namespace ctx opts)))))
 
 (s/defn list-pods-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
@@ -206,7 +212,6 @@
   (throw-ex "InvalidInput" :invalid-input 422 log-object))
 
 (defn raise-errors! [apiserver-response]
-  (log/info :log apiserver-response)
   (if (or (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
           (nil? apiserver-response))
     (case (:code apiserver-response)
@@ -235,8 +240,8 @@
   (create-namespace! [_ k8s-namespace]
     (-> (create-namespace-impl! ctx k8s-namespace)
         (raise-errors!)))
-  (list-namespaces [_]
-    (protocols.kubernetes-client/list-namespaces ctx {}))
+  (list-namespaces [this]
+    (protocols.kubernetes-client/list-namespaces this {}))
   (list-namespaces [_ opts]
     (-> (list-namespaces-impl ctx opts)
         (raise-errors!)))
