@@ -22,7 +22,7 @@
   (> (count (get-http-like-interfaces application)) 0))
 
 (s/defn make-container-syncable :- models.application/Container
-  [{:application/keys [name]} :- models.application/Application
+  [{:application/keys [service]} :- models.application/Application
    {:container/keys [syncable? env] :as container} :- models.application/Container]
   (if syncable?
     (assoc container :container/env (merge env {"STARTUP_CLONE"    "true"
@@ -30,7 +30,7 @@
                                                 "STINGER_PORT"     "24000"
                                                 "APP_PATH"         "/app"
                                                 "STINGER_SCRIPTS"  "/scripts"
-                                                "GIT_URI"          (str "http://tanajura:6666/" name ".git")}))
+                                                "GIT_URI"          (str "http://tanajura:6666/" service ".git")}))
     container))
 
 (s/defn get-syncable-container :- models.application/Container
