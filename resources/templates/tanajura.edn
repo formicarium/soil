@@ -5,7 +5,8 @@
                :image     "formicarium/tanajura:1.10.3"
                :syncable? false
                :env       {"DEVSPACE" "{{devspace}}"
-                           "SOIL_URL" "{{soil-url}}"}}]
+                           "SOIL_URL" "{{soil-url}}"
+                           "REPOS_FOLDER" "/var/repos"}}]
  :interfaces [{:name      "default"
                :port      3002
                :type      :http
