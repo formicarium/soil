@@ -83,7 +83,7 @@
                               :value (str (val %))}) (:container/env container))}) containers))
 
 (s/defn application->deployment :- (s/pred map?)
-  [{:application/keys [devspace] :as application} :- models.application/Application
+  [{:application/keys [devspace service] :as application} :- models.application/Application
    image-pull-secrets :- [s/Str]]
   (let [app-name (:application/name application)
         syncable-containers (set (map :container/name (filter #(true? (:container/syncable? %))
@@ -93,7 +93,8 @@
       {:apiVersion "apps/v1"
        :kind       "Deployment"
        :metadata   {:name        app-name
-                    :labels      {"formicarium.io/application" app-name}
+                    :labels      {"formicarium.io/application" app-name
+                                  "formicarium.io/service"     service}
                     :annotations {"formicarium.io/patches"             (adapt/to-edn patches)
                                   "formicarium.io/syncable-containers" (adapt/to-edn syncable-containers)
                                   "formicarium.io/args"                (adapt/to-edn {})}
@@ -166,7 +167,7 @@
 
 (s/defn application->urls :- schemas.application/ApplicationUrls
   [application :- models.application/Application]
-  (log/info :application application)
+  (log/debug :application application)
   (->> (:application/interfaces application)
        (mapv (fn [{:interface/keys [name host type]}] {(keyword name) (str (clojure.core/name type) "://" host)}))
        (apply merge)))
@@ -174,6 +175,7 @@
 (s/defn internal->wire :- schemas.application/Application
   [application :- models.application/Application]
   {:name     (:application/name application)
+   :service  (:application/service application)
    :devspace (:application/devspace application)
    :syncable (logic.application/syncable? application)
    :links    (application->urls application)})
@@ -244,9 +246,12 @@
    service :- schemas.k8s.service/Service
    ingress :- schemas.k8s.ingress/Ingress
    node :- s/Any]
-  #:application{:name       (-> deployment :metadata :labels (get "formicarium.io/application"))
-                :devspace   (-> deployment :metadata :namespace)
-                :interfaces (vec (k8s->interfaces deployment service ingress node))
-                :containers (vec (k8s->containers deployment))
-                :patches    (vec (k8s->patches deployment service ingress))})
+  (let [app-name (-> deployment :metadata :labels (get "formicarium.io/application"))
+        svc-name (-> deployment :metadata :labels (get "formicarium.io/service"))]
+    #:application{:name       app-name
+                  :service    (or svc-name app-name)
+                  :devspace   (-> deployment :metadata :namespace)
+                  :interfaces (vec (k8s->interfaces deployment service ingress node))
+                  :containers (vec (k8s->containers deployment))
+                  :patches    (vec (k8s->patches deployment service ingress))}))
 

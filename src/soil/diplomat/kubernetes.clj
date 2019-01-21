@@ -13,7 +13,9 @@
             [soil.models.devspace :as models.devspace]
             [soil.logic.application :as logic.application]
             [io.pedestal.log :as log]
-            [clj-service.adapt :as adapt]))
+            [clj-service.adapt :as adapt]
+            [soil.schemas.kubernetes.service :as schemas.k8s.service]
+            [soil.schemas.kubernetes.ingress :as schemas.k8s.ingress]))
 
 (s/defn create-namespace! :- s/Str
   [namespace-name :- s/Str
@@ -58,18 +60,15 @@
 (s/defn get-pod-node-name :- (s/maybe s/Str)
   [application :- models.application/Application
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (log/info :log "get-pod-node-name" :pod (get-pod-by-app application k8s-client))
   (get-in (get-pod-by-app application k8s-client) [:spec :nodeName]))
 
 (s/defn get-pod-node-ip :- s/Str
   [application :- models.application/Application
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (log/info :log "get-pod-node-ip" :application application)
   (->> (protocols.k8s/list-nodes k8s-client)
        (filter (fn [node] (= (get-in node [:metadata :name])
                              (get-pod-node-name application k8s-client))))
        first
-       ((fn [x] (log/info :node x) x))
        logic.interface/get-node-ip))
 
 (s/defn get-node-by-app-name :- (s/maybe (s/pred map?))
@@ -120,6 +119,16 @@
   [app-name :- s/Str]
   {:label-selector (str "formicarium.io/application=" app-name)})
 
+(s/defn svc-name->k8s-label :- {:label-selector s/Str}
+  [svc-name :- s/Str]
+  {:label-selector (str "formicarium.io/service=" svc-name)})
+
+(s/defn get-deployments-for-service :- [schemas.k8s.deployment/Deployment]
+  [devspace-name :- s/Str
+   fmc-service :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (protocols.k8s/list-deployment k8s-client devspace-name (svc-name->k8s-label fmc-service)))
+
 (s/defn ^:private get-deployments :- [schemas.k8s.deployment/Deployment]
   [k8s-client :- protocols.k8s/IKubernetesClient
    namespace-name :- s/Str]
@@ -127,11 +136,11 @@
     (fn [deployment] (string? (get-in deployment [:metadata :labels "formicarium.io/application"])))
     (protocols.k8s/list-deployment k8s-client namespace-name)))
 
-(s/defn get-applications :- [models.application/Application]
+(s/defn get-applications-for-deployments
   [devspace-name :- s/Str
+   deployments :- [schemas.k8s.deployment/Deployment]
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (let [deployments (get-deployments k8s-client devspace-name)
-        services    (protocols.k8s/list-services k8s-client devspace-name)
+  (let [services    (protocols.k8s/list-services k8s-client devspace-name)
         ingresses   (protocols.k8s/list-ingresses k8s-client devspace-name)
         pods        (protocols.k8s/list-pods k8s-client devspace-name)
         nodes       (protocols.k8s/list-nodes k8s-client)]
@@ -144,6 +153,12 @@
               node (misc/find-first nodes #(= (get-in % [:metadata :name]) (get-in pod [:spec :nodeName])))]
           (adapters.application/k8s->application deployment service ingress node)))
       deployments)))
+
+(s/defn get-applications :- [models.application/Application]
+  [devspace-name :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [deployments (get-deployments k8s-client devspace-name)]
+    (get-applications-for-deployments devspace-name deployments k8s-client)))
 
 (s/defn get-devspace :- models.devspace/Devspace
   [devspace-name :- s/Str

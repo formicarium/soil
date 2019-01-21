@@ -24,6 +24,7 @@
 (s/defn on-create-service :- [schemas.application/ApplicationDefinition]
   [service-args :- ConfigServerArgs
    config-server :- protocols.config-server/IConfigServerClient]
+  (log/info :on-create-service service-args)
   (-> (http-post (str (:url config-server) create-service-path) service-args)
       :body
       adapt/from-json

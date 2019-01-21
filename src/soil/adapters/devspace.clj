@@ -28,8 +28,7 @@
 
 (s/defn create-devspace->args-map :- (s/pred map?)
   [{devspace-name :name args :args} :- schemas.devspace/CreateDevspace]
-  {:name devspace-name
-   :args args})
+  (misc/assoc-if {:name devspace-name} :args args))
 
 (s/defn create-devspace->applications? :- (s/maybe [models.application/Application])
   [{devspace-name :name devspace-args :args :as create-devspace} :- schemas.devspace/CreateDevspace

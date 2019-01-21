@@ -43,21 +43,27 @@
          (.printStackTrace e)
          "not-deleted")))
 
-(s/defn delete-service!
-  [service-name :- s/Str
-   devspace :- s/Str
+(s/defn delete-application!
+  [app-name :- s/Str
+   devspace-name :- s/Str
    k8s-client :- protocols.k8s/IKubernetesClient]
-  {:deployment (try-delete protocols.k8s/delete-deployment! service-name devspace k8s-client)
-   :service    (try-delete protocols.k8s/delete-service! service-name devspace k8s-client)
-   :ingress    (try-delete protocols.k8s/delete-ingress! service-name devspace k8s-client)})
+  {:name app-name
+   :kubernetes
+   {:deployment (try-delete protocols.k8s/delete-deployment! app-name devspace-name k8s-client)
+    :service    (try-delete protocols.k8s/delete-service! app-name devspace-name k8s-client)
+    :ingress    (try-delete protocols.k8s/delete-ingress! app-name devspace-name k8s-client)}})
 
-(s/defn one-service :- models.application/Application
+(s/defn delete-service!
+  [svc-name :- s/Str
+   devspace-name :- s/Str
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [deployments (diplomat.kubernetes/get-deployments-for-service devspace-name svc-name k8s-client)
+        apps (diplomat.kubernetes/get-applications-for-deployments devspace-name deployments k8s-client)]
+    (mapv #(delete-application! (:application/name %) devspace-name k8s-client) apps)))
+
+(s/defn one-service :- [models.application/Application]
   [devspace-name :- s/Str
    service-name :- s/Str
    k8s-client :- protocols.k8s/IKubernetesClient]
-  (let [deployment (protocols.k8s/get-deployment k8s-client service-name devspace-name)
-        service (protocols.k8s/get-service k8s-client service-name devspace-name)
-        ingress (protocols.k8s/get-ingress k8s-client service-name devspace-name)
-        node (diplomat.kubernetes/get-node-by-app-name devspace-name service-name k8s-client)]
-    (prn "ONE SERVICE " (adapters.application/k8s->application deployment service ingress node))
-    (adapters.application/k8s->application deployment service ingress node)))
+  (let [deployments (diplomat.kubernetes/get-deployments-for-service devspace-name service-name k8s-client)]
+    (diplomat.kubernetes/get-applications-for-deployments devspace-name deployments k8s-client)))

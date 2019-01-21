@@ -174,14 +174,12 @@
 (s/defn list-namespaces-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    opts :- (s/pred map?)]
-  (log/info :ctx ctx :opts opts)
   (mapv internalize-namespace (:items (<!! (k8s/list-namespace ctx opts)))))
 
 (s/defn list-pods-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    namespace :- s/Str
    opts :- (s/pred map?)]
-  (log/info :pods "Listing pods")
   (mapv internalize-pod (:items (<!! (k8s/list-namespaced-pod ctx (merge opts {:namespace namespace}))))))
 
 (s/defn list-services-impl :- [(s/pred map?)]
@@ -214,7 +212,6 @@
   (throw-ex "InvalidInput" :invalid-input 422 log-object))
 
 (defn raise-errors! [apiserver-response]
-  (log/info :log apiserver-response)
   (if (or (and (= (:kind apiserver-response) "Status") (not= (:status apiserver-response) "Success"))
           (nil? apiserver-response))
     (case (:code apiserver-response)

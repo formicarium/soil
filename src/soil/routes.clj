@@ -11,7 +11,8 @@
             [schema.core :as s]
             [soil.config :as config]
             [soil.adapters.application :as adapters.application]
-            [soil.adapters.devspace :as adapters.devspace]))
+            [soil.adapters.devspace :as adapters.devspace]
+            [soil.adapters.service :as adapters.service]))
 
 (defn get-health [_]
   {:status 200
@@ -55,7 +56,7 @@
     devspace-name                             :devspace-name}]
   {:status 200
    :body   (->> (controllers.service/create-service! service-deploy devspace-name config k8s-client config-server)
-                (mapv adapters.application/application->urls))})
+                adapters.service/internal->wire)})
 
 (defn delete-service!
   [{{:keys [k8s-client config]} :components
@@ -66,11 +67,11 @@
 
 (defn one-service
   [{{:keys [k8s-client]} :components
-    devspace-name             :devspace-name
-    service-name              :service-name}]
+    devspace-name        :devspace-name
+    service-name         :service-name}]
   {:status 200
    :body   (-> (controllers.service/one-service devspace-name service-name k8s-client)
-               adapters.application/internal->wire)})
+               adapters.service/internal->wire)})
 
 (def routes
   (route/expand-routes

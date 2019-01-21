@@ -21,7 +21,6 @@
 (s/defn render-application :- models.application/Application
   [application :- models.application/Application
    k8s-client :- protocols.k8s-client/IKubernetesClient]
-  (log/info :application application)
   (->> (get-tcp-hosts application k8s-client)
        (logic.application/render-tcp-hosts application)))
 
@@ -33,5 +32,4 @@
   (diplomat.kubernetes/create-service! application k8s-client)
   (when (logic.application/has-http-like-interfaces application)
     (diplomat.kubernetes/create-ingress! application k8s-client))
-  (log/info :application application :before true)
   (render-application application k8s-client))
