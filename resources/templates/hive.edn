@@ -2,7 +2,7 @@
  :service    "hive"
  :devspace   "{{devspace}}"
  :containers [{:name      "hive"
-               :image     "formicarium/hive:5d98c11ea5db32bd8db5478e7389f0ac668d79b3"
+               :image     "formicarium/hive:5c628e3cbe8999e58e1a7972dc4689f9a204fa90"
                :syncable? false
                :env       {}}]
  :interfaces [{:name      "default"
