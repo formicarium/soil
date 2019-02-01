@@ -102,7 +102,8 @@
   [ctx :- KubernetesContext
    namespace-name :- s/Str
    opts :- (s/pred map?)]
-  (mapv internalize-ingress (:items (<!! (extensions-v1beta1/list-namespaced-ingress ctx (assoc opts :namespace namespace-name))))))
+  (when-let [ingresses (:items (<!! (extensions-v1beta1/list-namespaced-ingress ctx (assoc opts :namespace namespace-name))))]
+    (mapv internalize-ingress ingresses)))
 
 (s/defn delete-service-account!
   [ctx :- KubernetesContext
@@ -114,7 +115,7 @@
   [ctx :- KubernetesContext
    namespace :- s/Str
    opts :- (s/pred map?)]
-  (let [deployments (:items (<!! (k8s-apps/list-namespaced-deployment ctx (merge opts {:namespace namespace}))))]
+  (when-let [deployments (:items (<!! (k8s-apps/list-namespaced-deployment ctx (merge opts {:namespace namespace}))))]
     (mapv internalize-deployment deployments)))
 
 (s/defn delete-deployment-impl!
@@ -174,20 +175,22 @@
 (s/defn list-namespaces-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    opts :- (s/pred map?)]
-  (mapv internalize-namespace (:items (<!! (k8s/list-namespace ctx opts)))))
+  (when-let [namespaces (:items (<!! (k8s/list-namespace ctx opts)))]
+    (mapv internalize-namespace namespaces)))
 
 (s/defn list-pods-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    namespace :- s/Str
    opts :- (s/pred map?)]
-  (mapv internalize-pod (:items (<!! (k8s/list-namespaced-pod ctx (merge opts {:namespace namespace}))))))
+  (when-let [pods (:items (<!! (k8s/list-namespaced-pod ctx (merge opts {:namespace namespace}))))]
+    (mapv internalize-pod pods)))
 
 (s/defn list-services-impl :- [(s/pred map?)]
   [ctx :- KubernetesContext
    namespace :- s/Str
    opts :- (s/pred map?)]
-  (mapv internalize-service (:items (<!! (k8s/list-namespaced-service ctx (merge opts {:namespace namespace}))))))
-
+  (when-let [services (:items (<!! (k8s/list-namespaced-service ctx (merge opts {:namespace namespace}))))]
+    (mapv internalize-service services)))
 
 (s/defn delete-all-services!
   [ctx :- KubernetesContext

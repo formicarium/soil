@@ -7,7 +7,6 @@
                  [leoiacovini/clj-service "1.3.0"]
                  [org.clojure/core.async "0.4.474"]
                  [selmer "1.11.9"]
-                 [com.ibm.etcd/etcd-java "0.0.5"]
                  [nubank/kubernetes-api "1.4.0"]
                  [clj-http "3.9.0"]
                  [http-kit "2.3.0"]
