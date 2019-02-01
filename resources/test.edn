@@ -8,6 +8,4 @@
                                                    :namespace "default"
                                                    :max-port  5000
                                                    :min-port  4000}}
-         :etcd               {:endpoint "localhost"
-                              :port     2379}
          :skip-kubectl-proxy true}]

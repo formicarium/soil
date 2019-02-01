@@ -9,6 +9,4 @@
                                                    :namespace "fmc-infra"
                                                    :max-port  5000
                                                    :min-port  4000}}
-         :etcd               {:endpoint #or [#env ETCD_ENDPOINT "fmc-etcd-client"]
-                              :port     #long #or [#env ETCD_PORT 2379]}
          :skip-kubectl-proxy false}]
