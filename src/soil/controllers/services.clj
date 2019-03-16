@@ -32,6 +32,14 @@
              (diplomat.config-server/get-service-application devspace-name devspace-args service-deploy config config-server))
          (mapv #(create-one-application % config k8s-client)))))
 
+(s/defn deploy-service-set :- [models.application/Application]
+  [services-deploy :- [schemas.service/DeployService],
+   devspace-name :- s/Str
+   config :- protocols.config/IConfig
+   k8s-client :- protocols.k8s/IKubernetesClient
+   config-server :- protocols.config-server-client/IConfigServerClient]
+  (mapcat #(create-service! % devspace-name config k8s-client config-server) services-deploy))
+
 (s/defn ^:private try-delete :- s/Str
   [delete-fn :- (s/make-fn-schema s/Any [[protocols.k8s/IKubernetesClient s/Str s/Str]])
    service-name :- s/Str
@@ -49,9 +57,9 @@
    k8s-client :- protocols.k8s/IKubernetesClient]
   {:name app-name
    :kubernetes
-   {:deployment (try-delete protocols.k8s/delete-deployment! app-name devspace-name k8s-client)
-    :service    (try-delete protocols.k8s/delete-service! app-name devspace-name k8s-client)
-    :ingress    (try-delete protocols.k8s/delete-ingress! app-name devspace-name k8s-client)}})
+         {:deployment (try-delete protocols.k8s/delete-deployment! app-name devspace-name k8s-client)
+          :service    (try-delete protocols.k8s/delete-service! app-name devspace-name k8s-client)
+          :ingress    (try-delete protocols.k8s/delete-ingress! app-name devspace-name k8s-client)}})
 
 (s/defn delete-service!
   [svc-name :- s/Str

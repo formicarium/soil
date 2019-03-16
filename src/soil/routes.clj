@@ -73,6 +73,14 @@
    :body   (-> (controllers.service/one-service devspace-name service-name k8s-client)
                adapters.service/internal->wire)})
 
+(defn deploy-set!
+  [[{{:keys [k8s-client config-server config]} :components
+     {:keys [services]}                        :data
+     devspace-name                             :devspace-name}]]
+  {:status 200
+   :body   (->> (controllers.service/deploy-service-set services devspace-name config k8s-client config-server)
+                adapters.service/internal->wire)})
+
 (def routes
   (route/expand-routes
     `[[["/" ^:interceptors [int-err/catch!
@@ -92,6 +100,10 @@
           ["/:devspace-name" ^:interceptors [(int-adapt/coerce-path :devspace-name s/Str)]
            {:get    [:one-devspace one-devspace]
             :delete [:delete-devspace delete-devspace!]}
+
+           ["/deploy-set" ^:interceptors [(int-schema/coerce schemas.service/DeploySet)]
+            {:post [:deploy-set deploy-set!]}]
+
            ["/services"
             {:post [:deploy-service
                     ^:interceptors [(int-schema/coerce schemas.service/DeployService)]
