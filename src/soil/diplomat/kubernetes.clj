@@ -96,6 +96,7 @@
 (s/defn get-devspaces-names :- [s/Str]
   [k8s-client :- protocols.k8s/IKubernetesClient]
   (->> (get-fmc-namespaces k8s-client)
+       (remove #(= :terminating (-> % :status :phase keyword)))
        (mapv (comp :name :metadata))))
 
 (s/defn get-devspace-args :- (s/pred map?)
@@ -133,7 +134,8 @@
   [k8s-client :- protocols.k8s/IKubernetesClient
    namespace-name :- s/Str]
   (filter
-    (fn [deployment] (string? (get-in deployment [:metadata :labels "formicarium.io/application"])))
+    (fn [deployment]
+      (string? (get-in deployment [:metadata :labels "formicarium.io/application"])))
     (protocols.k8s/list-deployment k8s-client namespace-name)))
 
 (s/defn get-applications-for-deployments
