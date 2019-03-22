@@ -15,7 +15,8 @@
             [io.pedestal.log :as log]
             [clj-service.adapt :as adapt]
             [soil.schemas.kubernetes.service :as schemas.k8s.service]
-            [soil.schemas.kubernetes.ingress :as schemas.k8s.ingress]))
+            [soil.schemas.kubernetes.ingress :as schemas.k8s.ingress]
+            [clojure.string :as str]))
 
 (s/defn create-namespace! :- s/Str
   [namespace-name :- s/Str
@@ -96,6 +97,7 @@
 (s/defn get-devspaces-names :- [s/Str]
   [k8s-client :- protocols.k8s/IKubernetesClient]
   (->> (get-fmc-namespaces k8s-client)
+       (remove #(= :terminating (-> % :status :phase str/lower-case keyword)))
        (mapv (comp :name :metadata))))
 
 (s/defn get-devspace-args :- (s/pred map?)
@@ -133,7 +135,8 @@
   [k8s-client :- protocols.k8s/IKubernetesClient
    namespace-name :- s/Str]
   (filter
-    (fn [deployment] (string? (get-in deployment [:metadata :labels "formicarium.io/application"])))
+    (fn [deployment]
+      (string? (get-in deployment [:metadata :labels "formicarium.io/application"])))
     (protocols.k8s/list-deployment k8s-client namespace-name)))
 
 (s/defn get-applications-for-deployments
