@@ -74,9 +74,9 @@
                adapters.service/internal->wire)})
 
 (defn deploy-set!
-  [[{{:keys [k8s-client config-server config]} :components
-     {:keys [services]}                        :data
-     devspace-name                             :devspace-name}]]
+  [{{:keys [k8s-client config-server config]} :components
+    {:keys [services]}                        :data
+    devspace-name                             :devspace-name}]
   {:status 200
    :body   (->> (controllers.service/deploy-service-set services devspace-name config k8s-client config-server)
                 adapters.service/internal->wire)})
