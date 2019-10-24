@@ -39,6 +39,17 @@
   (->> (adapters.application/application->service application)
        (protocols.k8s/create-service! k8s-client)))
 
+(s/defn create-persistent-volume-claim!
+  [gigabytes :- s/Int
+   storage-class-name :- s/Str
+   application :- models.application/Application
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [{app-name :application/name app-devspace :application/devspace} application]
+    (protocols.k8s/create-persistent-volume-claim!
+      k8s-client
+      (logic.kubernetes/persistent-volume-claim (str app-name "-pvc") app-devspace gigabytes storage-class-name)))
+  )
+
 (s/defn create-ingress!
   [application :- models.application/Application
    k8s-client :- protocols.k8s/IKubernetesClient]

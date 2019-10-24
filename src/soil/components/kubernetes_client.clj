@@ -19,6 +19,15 @@
 
 (defn- keyword-keys->str-keys [m] (misc/map-keys #(subs (str %) 1) m))
 
+(defn update-metadata [k8s-resource]
+  (-> k8s-resource
+      (update-in [:metadata :labels] keyword-keys->str-keys)
+      (update-in [:metadata :annotations] keyword-keys->str-keys)))
+
+(defn internalize-persistent-volume-claim [pvc]
+  (-> pvc
+      (update-metadata)))
+
 (defn internalize-deployment
   [deployment]
   (-> deployment
@@ -146,6 +155,10 @@
 (s/defn create-ingress-impl! [ctx ingress]
   (<!! (extensions-v1beta1/create-namespaced-ingress ctx ingress {:namespace (get-in ingress [:metadata :namespace])})))
 
+(s/defn create-persistent-volume-claim-impl! [ctx pvc]
+  (log/info :log ::create-persistent-volume-claim :resource pvc)
+  (<!! (k8s/create-namespaced-persistent-volume-claim ctx pvc {:namespace (get-in pvc [:metadata :namespace])})))
+
 (s/defn delete-ingress-impl!
   [ctx :- KubernetesContext
    ingress-name :- s/Str
@@ -233,6 +246,13 @@
 (defn get-deployment-impl [ctx namespace deployment-name]
   (internalize-deployment (<!! (k8s-apps/read-namespaced-deployment ctx {:namespace namespace
                                                                          :name      deployment-name}))))
+
+(defn get-persistent-volume-claim-impl [ctx namespace-name pvc-name]
+  (internalize-persistent-volume-claim
+    (<!! (k8s/read-namespaced-persistent-volume-claim ctx {:namespace namespace-name
+                                                           :name      pvc-name}))))
+
+
 
 (defrecord KubernetesClient [config ctx]
   protocols.kubernetes-client/KubernetesClient
@@ -324,6 +344,15 @@
         (raise-errors!)))
   (list-pods [this namespace]
     (protocols.kubernetes-client/list-pods this namespace {}))
+
+
+  (create-persistent-volume-claim! [_ pvc]
+    (-> (create-persistent-volume-claim-impl! ctx pvc)
+        (raise-errors!)))
+
+  (get-persistent-volume-claim [_ pvc-name namespace]
+    (-> (get-persistent-volume-claim-impl ctx namespace pvc-name)
+        (raise-errors!)))
 
   component/Lifecycle
   (start [this]

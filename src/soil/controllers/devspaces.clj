@@ -37,6 +37,23 @@
   (load-application-template "tanajura" {:devspace devspace
                                          :soil-url (protocols.config/get-in! config [:soil :url])} config))
 
+(s/defn create-tanajura! :- models.application/Application
+  [devspace-name :- s/Str
+   config :- protocols.config/IConfig
+   k8s-client :- protocols.k8s/IKubernetesClient]
+  (let [tanajura (tanajura-application devspace-name config)
+        tanajura-storage-size (protocols.config/get-in-maybe config [:tanajura :storage-size])
+        tanajura-storage-class (protocols.config/get-in-maybe config [:tanajura :storage-class-name])]
+    (if tanajura-storage-size
+      (do (diplomat.kubernetes/create-persistent-volume-claim! tanajura-storage-size tanajura-storage-class tanajura k8s-client)
+          (controllers.application/create-application! tanajura config k8s-client))
+      (do (log/info :log ::skipping-persistent-volume-claim)
+          (controllers.application/create-application! (if tanajura-storage-size
+                                                         tanajura
+                                                         (disj tanajura :application/patches))
+                                                       config
+                                                       k8s-client)))))
+
 (s/defn create-setup! :- [models.application/Application]
   [create-devspace :- schemas.devspace/CreateDevspace
    config :- protocols.config/IConfig
@@ -55,8 +72,7 @@
   #:devspace{:name         devspace-name
              :hive         (-> (hive-application devspace-name config)
                                (controllers.application/create-application! config k8s-client))
-             :tanajura     (-> (tanajura-application devspace-name config)
-                               (controllers.application/create-application! config k8s-client))
+             :tanajura     (create-tanajura! devspace-name config k8s-client)
              :applications (create-setup! new-devspace config config-server k8s-client)})
 
 

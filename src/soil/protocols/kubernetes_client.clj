@@ -31,6 +31,9 @@
   (get-config-map [this name namespace])
   (patch-config-map! [this name namespace config-map])
 
+  (create-persistent-volume-claim! [this pvc])
+  (get-persistent-volume-claim [this pvc-name namespace])
+
   (list-pods [this namespace] [this namespace opts]))
 
 (def IKubernetesClient (:on-interface KubernetesClient))

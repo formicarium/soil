@@ -2,7 +2,7 @@
         {:env                "dev"
          :domain             #or [#env DOMAIN "formicarium.host"]
          :config-server      {:url #or [#env CONFIG_SERVER_URL "http://localhost:8549"]}
-         :kubernetes         {:url                "http://localhost:9000"
+         :kubernetes         {:url               #or [#env KUBERNETES_URL "http://localhost:9000"]
                               :image-pull-secrets []
                               :token-filepath     #or [#env KUBERNETES_TOKEN_FILEPATH "/secrets/token"]
                               :ingress-config-map {:name      #or [#env INGRESS_CONFIG_MAP_NAME "fmc-ingress-tcp"]

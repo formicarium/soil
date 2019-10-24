@@ -19,13 +19,15 @@
   :repositories [["central" {:url "https://repo1.maven.org/maven2/" :snapshots false}]
                  ["clojars" {:url "https://clojars.org/repo/"}]]
 
-  :profiles {:dev     {:aliases      {"run-dev" ["trampoline" "run" "-m" "soil.server/run-dev"]}
-                       :plugins      [[lein-midje "3.2.1"]]
-                       :dependencies [[midje "1.9.1"]
-                                      [clj-http-fake "1.0.3"]
-                                      [http-kit.fake "0.2.1"]
-                                      [nubank/matcher-combinators "0.5.0"]
-                                      [nubank/selvage "0.0.1"]]}
-             :uberjar {:aot [soil.server]}}
+  :aliases {"run-dev" ["with-profile" "+dev-server" "trampoline" "repl" ":headless"]}
+  :profiles {:dev-server {:injections [(require '[soil.server :as server])
+                                       (server/run-dev)]}
+             :dev        {:plugins      [[lein-midje "3.2.1"]]
+                          :dependencies [[midje "1.9.1"]
+                                         [clj-http-fake "1.0.3"]
+                                         [http-kit.fake "0.2.1"]
+                                         [nubank/matcher-combinators "0.5.0"]
+                                         [nubank/selvage "0.0.1"]]}
+             :uberjar    {:aot [soil.server]}}
   :main ^{:skip-aot true} soil.server)
 

@@ -4,8 +4,8 @@
  :containers [{:name      "tanajura"
                :image     "formicarium/tanajura:1.10.3"
                :syncable? false
-               :env       {"DEVSPACE" "{{devspace}}"
-                           "SOIL_URL" "{{soil-url}}"
+               :env       {"DEVSPACE"     "{{devspace}}"
+                           "SOIL_URL"     "{{soil-url}}"
                            "REPOS_FOLDER" "/var/repos"}}]
  :interfaces [{:name      "default"
                :port      3002
@@ -14,4 +14,14 @@
               {:name      "git"
                :port      6666
                :type      :http
-               :container "tanajura"}]}
+               :container "tanajura"}]
+ :patches    [{:kind  "Deployment"
+               :patch {:op    "add",
+                       :path  "/spec/template/spec/volumes"
+                       :value [{:name                  "repos"
+                                :persistentVolumeClaim {:claimName "tanajura-pvc"}}]}}
+              {:kind "Deployment"
+               :patch {:op "add",
+                       :path "/spec/template/spec/containers/0/volumeMounts"
+                       :value [{:name "repos"
+                                :mountPath "/var/repos"}]}}]}
