@@ -1,6 +1,7 @@
-(ns adapter.application
+(ns adapters.application-test
   (:require [clojure.test :refer :all]
             [soil.adapters.application :as adapters.application]
+            [matcher-combinators.test]
             [schema.core :as s]
             [soil.models.application :as models.application]))
 
@@ -152,3 +153,8 @@
                                                                                          :container "hive"
                                                                                          :host      "10.129.218.235:32372"}]
                                                                 :patches    nil})))))
+(deftest k8s->containers-test
+  (testing "syncable container"
+    (is (match? [{:container/syncable? true
+                  :container/name      "kratos"}]
+                (adapters.application/k8s->containers kratos-deployment)))))

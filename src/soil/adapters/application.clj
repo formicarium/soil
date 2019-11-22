@@ -236,14 +236,14 @@
   [deployment]
   (map (fn [container]
          (misc/assoc-if
-           #:container{:name      (:name container)
-                       :image     (:image container)
-                       :syncable? (contains?
-                                    (edn-annotation->clj deployment "formicarium.io/syncable-containers")
-                                    (:name container))
-                       :env       (k8s-container->envs container)}
-           :container/syncable-codes (get (edn-annotation->clj deployment "formicarium.io/syncable-codes") (:name container)))))
-       (-> deployment :spec :template :spec :containers))
+             #:container{:name      (:name container)
+                         :image     (:image container)
+                         :syncable? (contains?
+                                      (edn-annotation->clj deployment "formicarium.io/syncable-containers")
+                                      (:name container))
+                         :env       (k8s-container->envs container)}
+             :container/syncable-codes (get (edn-annotation->clj deployment "formicarium.io/syncable-codes") (:name container))))
+       (-> deployment :spec :template :spec :containers)))
 
 (s/defn k8s->patches :- [models.application/EntityPatch]
   [deployment service ingress]
