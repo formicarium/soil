@@ -22,7 +22,7 @@ jobs:
         paths:
         - ~/.m2
         key: v1-dependencies-{{ checksum "project.clj" }}
-    - run: lein midje
+    - run: lein test
 
   check-version:
     docker:
