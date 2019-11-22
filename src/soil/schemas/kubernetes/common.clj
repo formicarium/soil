@@ -9,7 +9,7 @@
 
 (def LocalObjectReference
   "https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names"
-  s/Str)
+  {:name s/Str})
 
 (def ConfigMapKeySelector
   {:key                       s/Str,

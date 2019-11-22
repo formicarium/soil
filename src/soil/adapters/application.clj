@@ -245,11 +245,16 @@
              :container/syncable-codes (get (edn-annotation->clj deployment "formicarium.io/syncable-codes") (:name container))))
        (-> deployment :spec :template :spec :containers)))
 
+(s/defn entity-patch :- models.application/EntityPatch
+  [resource patch]
+  {:kind resource
+   :patch patch})
+
 (s/defn k8s->patches :- [models.application/EntityPatch]
   [deployment service ingress]
-  (concat (edn-annotation->clj deployment "formicarium.io/patches")
-          (edn-annotation->clj service "formicarium.io/patches")
-          (when ingress (edn-annotation->clj ingress "formicarium.io/patches"))))
+  (concat (map #(entity-patch "Deployment" %) (edn-annotation->clj deployment "formicarium.io/patches"))
+          (map #(entity-patch "Service" %) (edn-annotation->clj service "formicarium.io/patches"))
+          (when ingress (map #(entity-patch "Ingress" %) (edn-annotation->clj ingress "formicarium.io/patches")))))
 
 (s/defn k8s->application :- models.application/Application
   [deployment :- schemas.k8s.deployment/Deployment

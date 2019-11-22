@@ -78,9 +78,7 @@
                                                                          {:containerPort 35000
                                                                           :name          "repl"}]}]
                                       :hostname         "kratos"
-                                      :imagePullSecrets [{:name "docker-registry-secret"}]}}}})
-
-
+                                      #_#_:imagePullSecrets [{:name "docker-registry-secret"}]}}}})
 (deftest application->deployment-test
   (s/with-fn-validation
     (testing "externalize application to deployment"
@@ -95,8 +93,8 @@
                 :labels      {"formicarium.io/application" "kratos"}
                 :name        "kratos"
                 :namespace   "carlos-rodrigues"}
-   :spec       {:ports    [{:name "default" :port 8080 :protocol "TCP" :targetPort "default"}
-                           {:name "repl" :port 35000 :protocol "TCP" :targetPort "repl"}]
+   :spec       {:ports    [{:name "default" :port 8080 :protocol "TCP" :targetPort "default" :nodePOrt 32104}
+                           {:name "repl" :port 35000 :protocol "TCP" :targetPort "repl" :nodePort 32492}]
                 :selector {"formicarium.io/application" "kratos"}
                 :type     "NodePort"}})
 
@@ -158,3 +156,47 @@
     (is (match? [{:container/syncable? true
                   :container/name      "kratos"}]
                 (adapters.application/k8s->containers kratos-deployment)))))
+
+(def node-example
+  {:metadata {:name "ip-10-129-210-13.ec2.internal"},
+   :status {:addresses [{:type "InternalIP", :address "10.129.210.13"}
+                        {:type "InternalDNS", :address "ip-10-129-210-13.ec2.internal"}
+                        {:type "Hostname", :address "ip-10-129-210-13.ec2.internal"}]}})
+
+(deftest k8s->application-test
+  (s/with-fn-validation
+    (is (match?
+          #:application{:name "kratos",
+                        :service "kratos",
+                        :devspace "carlos-rodrigues",
+                        :interfaces [#:interface{:container "kratos",
+                                                 :name "default",
+                                                 :host "kratos.carlos-rodrigues.formicarium.host",
+                                                 :type :interface.type/http,
+                                                 :port 8080}
+                                     #:interface{:container "kratos",
+                                                 :name "repl",
+                                                 :host "10.129.210.13:32492",
+                                                 :type :interface.type/tcp,
+                                                 :port 35000}],
+                        :containers [#:container{:name "kratos",
+                                                 :image "formicarium/chamber-lein:latest",
+                                                 :syncable? true,
+                                                 :env {"STARTUP_CLONE" "true",
+                                                       "STINGER_PORT" "24000",
+                                                       "APP_PATH" "/app",
+                                                       "STINGER_SCRIPTS" "/scripts"},
+                                                 :syncable-codes #{#:syncable-code{:name "kratos"}}}],
+                        :patches [{:kind "Deployment",
+                                   :patch {:op "add",
+                                           :path "/spec/template/metadata/annotations/iam.amazonaws.com~1role",
+                                           :value "role-arn"}}
+                                  {:kind "Deployment",
+                                   :patch {:op "add",
+                                           :path "/spec/template/spec/volumes",
+                                           :value [{:name "shared-m2", :hostPath {:path "/var/.m2", :type "DirectoryOrCreate"}}]}}
+                                  {:kind "Deployment",
+                                   :patch {:op "add",
+                                           :path "/spec/template/spec/containers/0/volumeMounts",
+                                           :value [{:name "shared-m2", :mountPath "/root/.m2"}]}}]}
+          (adapters.application/k8s->application kratos-deployment kratos-service kratos-ingress node-example)))))

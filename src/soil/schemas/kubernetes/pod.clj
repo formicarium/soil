@@ -74,9 +74,14 @@
 (def ConfigMapVolumeSource
   {:name s/Str})
 
+(def HostPathVolumeSource
+  {:path s/Str
+   :type s/Str})
+
 (def Volume
   {:name                       s/Str
    (s/optional-key :secret)    SecretVolumeSource
+   (s/optional-key :hostPath)  HostPathVolumeSource
    (s/optional-key :configMap) ConfigMapVolumeSource})
 
 (def PodSpec
