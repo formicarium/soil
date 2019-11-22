@@ -1,7 +1,8 @@
 (ns soil.logic.application
   (:require [schema.core :as s]
             [soil.logic.interface :as logic.interface]
-            [soil.models.application :as models.application]))
+            [soil.models.application :as models.application]
+            clojure.set))
 
 (s/defn get-container-interfaces :- [models.application/Interface]
   [{:application/keys [interfaces]} :- models.application/Application
@@ -132,3 +133,10 @@
    tcp-hosts :- {s/Str s/Str}]
   (assoc application :application/interfaces
                      (mapv (fn [interface] (logic.interface/render-interface interface tcp-hosts)) interfaces)))
+
+(s/defn syncable-codes :- #{models.application/SyncableCode}
+  [application :- models.application/Application]
+  (->> (:application/containers application)
+       (map :container/syncable-codes)
+       (apply clojure.set/union)
+       not-empty))

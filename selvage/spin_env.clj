@@ -1,19 +1,21 @@
 (ns spin-env
-  (:require [selvage.flow :refer [flow *world*]]
-            [midje.sweet :refer :all]
+  (:require [selvage.test.flow :refer [defflow *world*]]
+            [clojure.test :refer :all]
             [soil.components :as soil]
-            [com.stuartsierra.component :as component]
+            [clj-service.system :as system]
             [cheshire.core :as cheshire]
-            [io.pedestal.http :as http]
+            [org.httpkit.client :as http]
             [clj-service.test-helpers :as th]
             [io.pedestal.test :refer [response-for]]
             [aero.core :as aero]
+            [httpkit.fake :refer [with-fake-http]]
             [aux.kubernetes.fake-kubernetes :as fake-kubernetes]
             [aux.kubernetes.kubernetes-data :as kubernetes-data]
             [matcher-combinators.matchers :as m]
-            [matcher-combinators.midje :refer [match]]
-            [clojure.java.io :as io])
-  (:use org.httpkit.fake))
+            [matcher-combinators.test]
+            [clojure.java.io :as io]
+            [schema.core :as s]))
+
 (def test-config (aero/read-config (io/resource "test.edn")))
 (def kubernetes-proxy-url (get-in test-config [:kubernetes :url]))
 (def configserver-url (get-in test-config [:config-server :url]))
@@ -25,14 +27,12 @@
 (defn init!
   [world]
   (-> world
-      (assoc :system (component/start-system (soil/system-map :test)))
+      (assoc :system (system/bootstrap! (soil/system-map :test)))
       expose-service))
 
 (defn end!
   [world]
-  (-> world
-      :system
-      component/stop-system)
+  (system/stop!)
   (dissoc world :system))
 
 (defn json->str [coll] (cheshire/generate-string coll))
@@ -63,47 +63,68 @@
   [world]
   (assoc world :env-created
                (with-fake-http [{:url    (str kubernetes-proxy-url "/api/v1/namespaces")
-                                 :method :post} {:body (json->str {:apiVersion "v1"
-                                                                   :kind       "Namespace"
-                                                                   :metadata   {:name "carlos"
-                                                                                :kind "fmc-devspace"}})}
+                                 :method :post}
+                                {:body (json->str {:apiVersion "v1"
+                                                   :kind       "Namespace"
+                                                   :metadata   {:name "carlos"
+                                                                :kind "fmc-devspace"}})}
+
                                 {:url (str kubernetes-proxy-url "/apis/apps/v1/namespaces/carlos/deployments")
-                                 :method :post} {:body (json->str success)}
-                                (fake-kubernetes/create-service kubernetes-proxy-url "carlos") {:body (json->str success)}
-                                (fake-kubernetes/create-ingress kubernetes-proxy-url "carlos") {:body (json->str success)}
-                                (fake-kubernetes/get-nodes kubernetes-proxy-url) {:body {:apiVersion "v1"
-                                                                                         :kind "ListNodes"
-                                                                                         :items kubernetes-data/nodes}}
-                                (fake-kubernetes/get-pods kubernetes-proxy-url "carlos") {:body {:apiVersion "v1"
-                                                                                                 :kind "ListPods"
-                                                                                                 :items kubernetes-data/pods}}
-                                (fake-kubernetes/get-service kubernetes-proxy-url "carlos" "hive") {:body {:apiVersion "v1"
-                                                                                                           :kind "Service"
-                                                                                                           :metadata {:name "hive"
-                                                                                                                      :namespace "carlos"
-                                                                                                                      :labels {:formicarium.io/application "hive"},
-                                                                                                                      :annotations {:formicarium.io/patches "[]",
-                                                                                                                                    :formicarium.io/port-types "{\"default\" :interface.type/http, \"repl\" :interface.type/nrepl, \"zmq\" :interface.type/tcp}"}}
-                                                                                                           :spec {:ports
-                                                                                                                  [{:name "default", :protocol "TCP", :port 8080, :targetPort "default", :nodePort 31305}
-                                                                                                                   {:name "repl", :protocol "TCP", :port 2222, :targetPort "repl", :nodePort 30292}
-                                                                                                                   {:name "zmq", :protocol "TCP", :port 9898, :targetPort "zmq", :nodePort 32372}]
-                                                                                                                  :selector {:formicarium.io/application "hive"}
-                                                                                                                  :type "NodePort"}}}
-                                (fake-kubernetes/get-service kubernetes-proxy-url "carlos" "tanajura") {:body {:kind "Service",
-                                                                                                               :apiVersion "v1",
-                                                                                                               :metadata {:name "tanajura",
-                                                                                                                          :namespace "leal",
-                                                                                                                          :labels {:formicarium.io/application "tanajura"},
-                                                                                                                          :annotations {:formicarium.io/patches "[]",
-                                                                                                                                        :formicarium.io/port-types "{\"default\" :interface.type/http, \"git\" :interface.type/http}"}},
-                                                                                                               :spec {:ports [{:name "default", :protocol "TCP", :port 3002, :targetPort "default", :nodePort 31386}
-                                                                                                                              {:name "git", :protocol "TCP", :port 6666, :targetPort "git", :nodePort 32160}],
-                                                                                                                      :selector {:formicarium.io/application "tanajura"},
-                                                                                                                      :type "NodePort"}}}
+                                 :method :post}
+                                {:body (json->str success)}
+
+                                {:url    (str kubernetes-proxy-url "/api/v1/namespaces/carlos/persistentvolumeclaims")
+                                 :method :post}
+                                {:body (json->str success)}
+
+                                (fake-kubernetes/create-service kubernetes-proxy-url "carlos")
+                                {:body (json->str success)}
+
+                                (fake-kubernetes/create-ingress kubernetes-proxy-url "carlos")
+                                {:body (json->str success)}
+
+                                (fake-kubernetes/get-nodes kubernetes-proxy-url)
+                                {:body {:apiVersion "v1"
+                                        :kind       "ListNodes"
+                                        :items      kubernetes-data/nodes}}
+
+                                (fake-kubernetes/get-pods kubernetes-proxy-url "carlos")
+                                {:body {:apiVersion "v1"
+                                        :kind       "ListPods"
+                                        :items      kubernetes-data/pods}}
+
+                                (fake-kubernetes/get-service kubernetes-proxy-url "carlos" "hive")
+                                {:body {:apiVersion "v1"
+                                        :kind       "Service"
+                                        :metadata   {:name        "hive"
+                                                     :namespace   "carlos"
+                                                     :labels      {:formicarium.io/application "hive"},
+                                                     :annotations {:formicarium.io/patches    "[]",
+                                                                   :formicarium.io/port-types "{\"default\" :interface.type/http, \"repl\" :interface.type/nrepl, \"zmq\" :interface.type/tcp}"}}
+                                        :spec       {:ports
+                                                               [{:name "default", :protocol "TCP", :port 8080, :targetPort "default", :nodePort 31305}
+                                                                {:name "repl", :protocol "TCP", :port 2222, :targetPort "repl", :nodePort 30292}
+                                                                {:name "zmq", :protocol "TCP", :port 9898, :targetPort "zmq", :nodePort 32372}]
+                                                     :selector {:formicarium.io/application "hive"}
+                                                     :type     "NodePort"}}}
+
+                                (fake-kubernetes/get-service kubernetes-proxy-url "carlos" "tanajura")
+                                {:body {:kind       "Service",
+                                        :apiVersion "v1",
+                                        :metadata   {:name        "tanajura",
+                                                     :namespace   "leal",
+                                                     :labels      {:formicarium.io/application "tanajura"},
+                                                     :annotations {:formicarium.io/patches    "[]",
+                                                                   :formicarium.io/port-types "{\"default\" :interface.type/http, \"git\" :interface.type/http}"}},
+                                        :spec       {:ports    [{:name "default", :protocol "TCP", :port 3002, :targetPort "default", :nodePort 31386}
+                                                                {:name "git", :protocol "TCP", :port 6666, :targetPort "git", :nodePort 32160}],
+                                                     :selector {:formicarium.io/application "tanajura"},
+                                                     :type     "NodePort"}}}
 
                                 {:url    (str configserver-url "/api/devspace/create")
+                                 #_#_:body   (json->str {:name "carlos"})
                                  :method :post} {:status 200 :body   (json->str [])}]
+
                                (create-env-req! (:service-fn world)))))
 
 (def deployment-example {:apiVersion "apps/v1"
@@ -138,6 +159,10 @@
   (assoc world :services-deployed (with-fake-http [{:url    (str kubernetes-proxy-url "/apis/apps/v1/namespaces/carlos/deployments")
                                                     :method :post} {:status 200
                                                                     :body   (json->str deployment-example)}
+
+                                                   {:url    (str kubernetes-proxy-url "/api/v1/namespaces/carlos/persistentvolumeclaims")
+                                                    :method :post} {:status 200 :body (json->str {})}
+
                                                    {:url    (str kubernetes-proxy-url "/api/v1/namespaces/carlos/services")
                                                     :method :post} {:body (json->str {:apiVersion "v1"
                                                                                       :kind       "Service"
@@ -152,30 +177,40 @@
                                                                                        :body   (json->str service-configuration)}]
                                                   (create-service-req! (:service-fn world)))))
 
-(flow "spin up a new devspace"
-      init!
-      (fn [world] (let [service (:service-fn world)]
-                    (assoc world :service-health (response-for service :get "/api/health"))))
+(defn run-without-fn-validation [flow]
+  (s/without-fn-validation
+    (flow)
+    (system/stop!)))
 
-      (fact "health must answer 200"
-            (:service-health *world*) => (match {:status 200
-                                                 :body   (json->str {:healthy true})}))
-      create-env!
-      (facts "about devspace creation"
-        (let [env-created (:env-created *world*)
-              body (str->json (:body env-created))]
-          (fact "returns created status"
-            env-created => (match {:status 201}))
-          (fact "returns devspace name"
-            body => (match {:name "carlos"}))
-          (fact "returns hive links"
-            body => (match {:hive {:links {:repl "nrepl://10.129.218.235:30292"
-                                           :zmq "tcp://10.129.218.235:32372"
-                                           :default "http://hive.carlos.formicarium.host"}}}))
-          (fact "returns tanajura links"
-            body => (match {:tanajura {:links {:default "http://tanajura.carlos.formicarium.host",
-                                               :git "http://tanajura-git.carlos.formicarium.host"}}}))))
-      #_create-service!
-      #_(fact "service 'nginx' must be deployed"
-              (:services-deployed *world*) => (contains {:status 200}))
-      end!)
+(defflow spin-devspace
+         {:wrapper-fn run-without-fn-validation}
+         init!
+         (fn [world] (let [service (:service-fn world)]
+                       (assoc world :service-health (response-for service :get "/api/health"))))
+
+         (testing "health must answer 200"
+           (is (match? {:status 200
+                        :body   (json->str {:healthy true})}
+                       (:service-health *world*))))
+
+         create-env!
+         (testing "about devspace creation"
+           (let [env-created (:env-created *world*)
+                 body        (str->json (:body env-created))]
+             (testing "returns created status"
+               (is (match? {:status 201} env-created)))
+             (testing "returns devspace name"
+               (is (match? {:name "carlos"} body)))
+             (testing "returns hive links"
+               (is (match? {:hive {:links {:repl    "nrepl://10.129.218.235:30292"
+                                           :zmq     "tcp://10.129.218.235:32372"
+                                           :default "http://hive.carlos.formicarium.host"}}}
+                           body)))
+             (testing "returns tanajura links"
+               (is (match? {:tanajura {:links {:default "http://tanajura.carlos.formicarium.host",
+                                               :git     "http://tanajura-git.carlos.formicarium.host"}}}
+                           body)))))
+         #_create-service!
+         #_(testing "service 'nginx' must be deployed"
+           (is (match? {:status 200} (:services-deployed *world*))))
+         end!)

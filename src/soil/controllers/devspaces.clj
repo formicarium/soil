@@ -59,6 +59,7 @@
    config :- protocols.config/IConfig
    config-server :- soil.protocols.config-server-client/IConfigServerClient
    k8s-client :- protocols.k8s/IKubernetesClient]
+  (log/info :log :creating-setup)
   (->> (or (adapters.devspace/create-devspace->applications? create-devspace config)
            (diplomat.config-server/get-devspace-applications create-devspace config config-server))
        (mapv #(controllers.application/create-application! % config k8s-client))))

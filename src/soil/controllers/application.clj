@@ -28,6 +28,7 @@
   [application :- models.application/Application
    config :- protocols.config/IConfig
    k8s-client :- protocols.k8s-client/IKubernetesClient]
+  (log/info :log :creating-application :application-name (:application/name application))
   (diplomat.kubernetes/create-deployment! application k8s-client config)
   (diplomat.kubernetes/create-service! application k8s-client)
   (when (logic.application/has-http-like-interfaces application)

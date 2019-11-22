@@ -2,7 +2,7 @@
   (:require [soil.protocols.config-server-client :as protocols.config-server]
             [clj-service.protocols.config :as protocols.config]
             [schema.core :as s]
-            [org.httpkit.client :as http-client]
+            [org.httpkit.client :as http]
             [com.stuartsierra.component :as component]
             [clj-service.adapt :as adapt]
             [soil.schemas.application :as schemas.application]
@@ -16,15 +16,16 @@
 (s/defn http-post
   [url :- s/Str
    body :- (s/pred map?)]
-  @(http-client/request {:url     url
-                         :method  :post
-                         :body    (adapt/to-json body)
-                         :headers {"Content-Type" "application/json"}}))
+  (log/info :url url :body body)
+  @(http/request {:url     url
+                  :method  :post
+                  :body    (adapt/to-json body)
+                  :headers {"Content-Type" "application/json"}}))
 
 (s/defn on-create-service :- [schemas.application/ApplicationDefinition]
   [service-args :- ConfigServerArgs
    config-server :- protocols.config-server/IConfigServerClient]
-  (log/info :on-create-service service-args)
+  (log/info :service-create service-args)
   (-> (http-post (str (:url config-server) create-service-path) service-args)
       :body
       adapt/from-json
@@ -33,7 +34,7 @@
 (s/defn on-create-devspace :- [schemas.application/ApplicationDefinition]
   [devspace-args :- ConfigServerArgs
    config-server :- protocols.config-server/IConfigServerClient]
-  (log/info :on-create-devspace devspace-args)
+  (log/info :devspace-create devspace-args)
   (-> (http-post (str (:url config-server) create-devspace-path) devspace-args)
       :body
       adapt/from-json

@@ -10,10 +10,13 @@
 (s/defschema EntityPatch {:kind (s/enum "Deployment" "Service" "Ingress")
                           :patch Patch})
 
-(s/defschema Container {:container/name                       s/Str
-                        :container/image                      s/Str
-                        (s/optional-key :container/syncable?) s/Bool
-                        :container/env                        {s/Str s/Str}})
+(s/defschema SyncableCode {:syncable-code/name s/Str})
+
+(s/defschema Container {:container/name                            s/Str
+                        :container/image                           s/Str
+                        (s/optional-key :container/syncable?)      s/Bool
+                        (s/optional-key :container/syncable-codes) #{SyncableCode}
+                        :container/env                             {s/Str s/Str}})
 
 (s/defschema InterfaceType (s/enum
                              :interface.type/http
