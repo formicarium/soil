@@ -1,5 +1,5 @@
 {:port               8080
- :version            "0.4.0"
+ :version            "0.4.0-beta"
  :soil               {:url #or [#env SOIL_URL "http://soil.formicarium.host"]}
  :tanajura           {:storage-size       #or [#env TANAJURA_STORAGE_SIZE 5]
                       :storage-class-name #or [#env TANAJURA_STORAGE_CLASS_NAME "default"]}

@@ -70,10 +70,14 @@ workflows:
         - test
         filters:
           branches:
-            only: master
+            only:
+              - master
+              - beta
     - publish:
         requires:
         - build
         filters:
           branches:
-            only: master
+            only:
+              - master
+              - beta
