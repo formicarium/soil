@@ -12,7 +12,8 @@
             [soil.config :as config]
             [soil.adapters.application :as adapters.application]
             [soil.adapters.devspace :as adapters.devspace]
-            [soil.adapters.service :as adapters.service]))
+            [soil.adapters.service :as adapters.service]
+            [io.pedestal.log :as log]))
 
 (defn get-health [_]
   {:status 200
@@ -39,6 +40,7 @@
 (defn create-devspace!
   [{{:keys [config config-server k8s-client]} :components
     new-devspace                              :data}]
+  (log/info :log :creating-devspace :devspace new-devspace)
   {:status 201
    :body   (-> (controllers.devspace/create-devspace! new-devspace config config-server k8s-client)
                adapters.devspace/internal->wire)})

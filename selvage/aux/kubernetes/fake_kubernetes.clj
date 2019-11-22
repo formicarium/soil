@@ -1,6 +1,5 @@
 (ns aux.kubernetes.fake-kubernetes
-  (:require [clojure.test :refer :all]
-            [org.httpkit.fake :refer [with-fake-http]]))
+  (:require [org.httpkit.fake :refer [with-fake-http]]))
 
 (defn create-deployment [url namespace-name]
   {:url (str url "/apis/apps/v1/namespaces/" namespace-name "/deployments")

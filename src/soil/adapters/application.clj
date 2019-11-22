@@ -88,6 +88,11 @@
   (let [app-name (:application/name application)
         syncable-containers (set (map :container/name (filter #(true? (:container/syncable? %))
                                                               (:application/containers application))))
+        syncable-codes (into {}
+                             (map (fn [{container-name  :container/name
+                                        container-codes :container/syncable-codes}]
+                                    [container-name container-codes])
+                                  (:application/containers application)))
         patches (logic.application/get-deployment-patches application)]
     (patch
       {:apiVersion "apps/v1"
@@ -97,6 +102,7 @@
                                   "formicarium.io/service"     service}
                     :annotations {"formicarium.io/patches"             (adapt/to-edn patches)
                                   "formicarium.io/syncable-containers" (adapt/to-edn syncable-containers)
+                                  "formicarium.io/syncable-codes"      (adapt/to-edn syncable-codes)
                                   "formicarium.io/args"                (adapt/to-edn {})}
                     :namespace   devspace}
        :spec       {:selector {:matchLabels {"formicarium.io/application" app-name}}
@@ -174,11 +180,13 @@
 
 (s/defn internal->wire :- schemas.application/Application
   [application :- models.application/Application]
-  {:name     (:application/name application)
-   :service  (:application/service application)
-   :devspace (:application/devspace application)
-   :syncable (logic.application/syncable? application)
-   :links    (application->urls application)})
+  (misc/assoc-if
+    {:name     (:application/name application)
+     :service  (:application/service application)
+     :devspace (:application/devspace application)
+     :syncable (logic.application/syncable? application)
+     :links    (application->urls application)}
+    :syncable-codes (logic.application/syncable-codes application)))
 
 ;; ==================================================
 
@@ -227,13 +235,15 @@
 (s/defn k8s->containers :- [models.application/Container]
   [deployment]
   (map (fn [container]
-         #:container{:name      (:name container)
-                     :image     (:image container)
-                     :syncable? (contains?
-                                  (edn-annotation->clj deployment "formicarium.io/syncable-containers")
-                                  (:name container))
-                     :env       (k8s-container->envs container)})
-       (-> deployment :spec :template :spec :containers)))
+         (misc/assoc-if
+           #:container{:name      (:name container)
+                       :image     (:image container)
+                       :syncable? (contains?
+                                    (edn-annotation->clj deployment "formicarium.io/syncable-containers")
+                                    (:name container))
+                       :env       (k8s-container->envs container)}
+           :container/syncable-codes (get (edn-annotation->clj deployment "formicarium.io/syncable-codes") (:name container)))))
+       (-> deployment :spec :template :spec :containers))
 
 (s/defn k8s->patches :- [models.application/EntityPatch]
   [deployment service ingress]

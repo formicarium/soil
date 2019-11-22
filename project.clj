@@ -15,19 +15,17 @@
                  [formicarium/clj-json-patch "0.1.9"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
-  :test-paths ["test/"]
+  :test-paths ["test/" "selvage/"]
   :repositories [["central" {:url "https://repo1.maven.org/maven2/" :snapshots false}]
                  ["clojars" {:url "https://clojars.org/repo/"}]]
 
   :aliases {"run-dev" ["with-profile" "+dev-server" "trampoline" "repl" ":headless"]}
   :profiles {:dev-server {:injections [(require '[soil.server :as server])
                                        (server/run-dev)]}
-             :dev        {:plugins      [[lein-midje "3.2.1"]]
-                          :dependencies [[midje "1.9.1"]
-                                         [clj-http-fake "1.0.3"]
+             :dev        {:dependencies [[clj-http-fake "1.0.3"]
                                          [http-kit.fake "0.2.1"]
                                          [nubank/matcher-combinators "0.5.0"]
-                                         [nubank/selvage "0.0.1"]]}
+                                         [nubank/selvage "1.0.0-BETA"]]}
              :uberjar    {:aot [soil.server]}}
   :main ^{:skip-aot true} soil.server)
 
